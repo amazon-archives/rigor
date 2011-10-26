@@ -1,16 +1,19 @@
 """ Database connection stuff """
 
+import vision.constants
+
+from vision.exceptions import DatabaseError, DuplicateError
+
 import psycopg2
 import psycopg2.extensions
 import psycopg2.extras
+
 from psycopg2.extensions import register_type
 from psycopg2.extensions import register_adapter
 from psycopg2.extensions import adapt
-from psycopg2.pool import SimpleConnectionPool
+from psycopg2.pool import ThreadedConnectionPool
 from psycopg2 import ProgrammingError
 from psycopg2 import IntegrityError
-
-from vision.exceptions import DatabaseError
 
 class VisionCursor(psycopg2.extras.DictCursor):
 	""" Helper methods for DBAPI cursors """
@@ -88,7 +91,7 @@ class Database(object):
 			dsn += " sslmode='require'"
 		if username:
 			dsn += " user='%s' password='%s'" % (username, password)
-		self._pool = SimpleConnectionPool(constants.MIN_DATABASE_CONNECTIONS, constants.MAX_DATABASE_CONNECTIONS, dsn)
+		self._pool = ThreadedConnectionPool(vision.constants.kMinimumDatabaseConnections, vision.constants.kMaximumDatabaseConnections, dsn)
 
 	def get_cursor(self):
 		""" Gets a cursor in its own connection on the database """
@@ -168,6 +171,9 @@ def _run_database_method(self, _commit_transaction, function, *args, **kwargs):
 			self._db.commit(cursor)
 		else:
 			self._db.rollback(cursor)
+	except IntegrityError as err:
+		self._db.rollback(cursor)
+		raise DuplicateError(err)
 	except:
 		self._db.rollback(cursor)
 		raise
