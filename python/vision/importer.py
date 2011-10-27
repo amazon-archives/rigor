@@ -92,7 +92,7 @@ class Importer(object):
 		if 'annotations' in metadata:
 			for annotation in metadata['annotations']:
 				a = Annotation()
-				for key in ('boundary', 'grouping', 'rank', 'model', 'value'):
+				for key in ('boundary', 'domain', 'rank', 'model', 'value'):
 					if key in annotation:
 						setattr(a, key, annotation[key])
 				if 'timestamp' in annotation:

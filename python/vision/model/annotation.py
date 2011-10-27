@@ -5,7 +5,7 @@ class Annotation(object):
 		self.id = None
 		self.stamp = None
 		self.boundary = None
-		self.grouping = None
+		self.domain = None
 		self.rank = None
 		self.model = None
 		self.value = None

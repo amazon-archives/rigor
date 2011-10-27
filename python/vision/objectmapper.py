@@ -64,13 +64,13 @@ class ObjectMapper(object):
 		pass
 
 	def _get_annotation_by_id(self, cursor, annotation_id):
-		sql = "SELECT id, stamp, boundary, grouping, rank, model, value FROM annotation WHERE id = %s;"
+		sql = "SELECT id, stamp, boundary, domain, rank, model, value FROM annotation WHERE id = %s;"
 		cursor.execute(sql, (annotation_id, ))
 		annotation = cursor.fetch_only_one_object(annotationMapper)
 		return annotation
 
 	def _get_annotations_by_image_id(self, cursor, image_id):
-		sql = "SELECT id, stamp, boundary, grouping, rank, model, value FROM annotation WHERE image_id = %s;"
+		sql = "SELECT id, stamp, boundary, domain, rank, model, value FROM annotation WHERE image_id = %s;"
 		cursor.execute(sql, (image_id, ))
 		annotations = cursor.fetch_all_objects(annotationMapper)
 		return annotations
@@ -82,6 +82,6 @@ class ObjectMapper(object):
 
 	def _create_annotation(self, cursor, annotation, image_id):
 		id = self._get_next_id(cursor, 'annotation')
-		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, grouping, rank, model, value) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (id, image_id, annotation.stamp, annotation.boundary, annotation.grouping, annotation.rank, annotation.model, annotation.value))
+		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, domain, rank, model, value) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+		cursor.execute(sql, (id, image_id, annotation.stamp, annotation.boundary, annotation.domain, annotation.rank, annotation.model, annotation.value))
 		annotation.id = id
