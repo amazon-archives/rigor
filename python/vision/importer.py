@@ -6,13 +6,13 @@ imported.
 
 import vision.logger
 import vision.database
-import vision.constants
 import vision.hash
 import vision.exceptions
 
 from vision.model.image import Image
 from vision.model.annotation import Annotation
 from vision.objectmapper import ObjectMapper
+from vision.config import config
 from datetime import datetime
 from psycopg2 import IntegrityError
 
@@ -31,12 +31,16 @@ class Importer(object):
 	extensions = ('jpg', 'png')
 	""" List of file extensions to scan """
 
-	def __init__(self, directory, database, host, username=None, password=None, move=False):
+	def __init__(self, directory, move=False):
+		"""
+		directory is which directory to scan for files; move is whether to move
+		files to the repository, as opposed to just copying them
+		"""
 		self._directory = directory
 		self._logger = vision.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
 		self._move = move
 		self._metadata = dict()
-		self._database = vision.database.Database(database, host, username, password)
+		self._database = vision.database.Database()
 		self._object_mapper = ObjectMapper(self._database)
 
 	def run(self):
@@ -72,7 +76,7 @@ class Importer(object):
 		metadata = self._metadata.copy()
 		metadata.update(self._read_local_metadata(basename))
 		if 'timestamp' in metadata:
-			image.stamp = datetime.strptime(metadata['timestamp'], vision.constants.kTimestampFormat)
+			image.stamp = datetime.strptime(metadata['timestamp'], config.get('import', 'timestamp_format'))
 		else:
 			image.stamp = datetime.utcfromtimestamp(os.path.getmtime(path))
 
@@ -92,17 +96,17 @@ class Importer(object):
 		if 'annotations' in metadata:
 			for annotation in metadata['annotations']:
 				a = Annotation()
-				for key in ('boundary', 'domain', 'rank', 'model', 'value'):
+				for key in ('boundary', 'domain', 'rank', 'model'):
 					if key in annotation:
 						setattr(a, key, annotation[key])
 				if 'timestamp' in annotation:
-					a.stamp = datetime.strptime(annotation['timestamp'], vision.constants.kTimestampFormat)
+					a.stamp = datetime.strptime(annotation['timestamp'], config.get('import', 'timestamp_format'))
 				else:
 					a.stamp = image.stamp
 				annotations.append(a)
 		image.annotations = annotations
 
-		destination = os.path.join(vision.constants.kImageDirectory, image.locator[0:2], image.locator[2:4], os.extsep.join((image.locator, image.format)))
+		destination = os.path.join(config.get('global', 'image_repository'), image.locator[0:2], image.locator[2:4], os.extsep.join((image.locator, image.format)))
 		# We take control of the transaction here so we can fail if copying/moving the file fails
 		cursor = self._object_mapper._db.get_cursor()
 		try:
@@ -139,7 +143,7 @@ class Importer(object):
 
 	def _read_global_metadata(self):
 		""" Reads the metadata file for the image directory and sets defaults """
-		metadata_file = os.path.join(self._directory, vision.constants.kMetadataFile)
+		metadata_file = os.path.join(self._directory, config.get('import', 'metadata_file'))
 		if not os.path.isfile(metadata_file):
 			return
 		self._metadata = json.load(open(metadata_file, 'r'))

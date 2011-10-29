@@ -1,7 +1,6 @@
 """ Database connection stuff """
 
-import vision.constants
-
+from vision.config import config
 from vision.exceptions import DatabaseError, DuplicateError
 
 import psycopg2
@@ -14,6 +13,8 @@ from psycopg2.extensions import adapt
 from psycopg2.pool import ThreadedConnectionPool
 from psycopg2 import ProgrammingError
 from psycopg2 import IntegrityError
+
+import ConfigParser
 
 class VisionCursor(psycopg2.extras.DictCursor):
 	""" Helper methods for DBAPI cursors """
@@ -83,15 +84,27 @@ class VisionCursor(psycopg2.extras.DictCursor):
 class Database(object):
 	""" Holds a pool of connections to a database """
 
-	def __init__(self, database, host, username=None, password=None, ssl=False):
+	def __init__(self):
 		register_type(psycopg2.extensions.UNICODE)
-		self._databaseName = database
-		dsn = "dbname='%s' host='%s'" % (database, host)
-		if ssl:
-			dsn += " sslmode='require'"
-		if username:
-			dsn += " user='%s' password='%s'" % (username, password)
-		self._pool = ThreadedConnectionPool(vision.constants.kMinimumDatabaseConnections, vision.constants.kMaximumDatabaseConnections, dsn)
+		self._databaseName = config.get('database', 'database')
+		dsn = "dbname='{0}' host='{1}'".format(self._databaseName, config.get('database', 'host'))
+		try:
+			ssl = config.getboolean('database', 'ssl')
+			if ssl:
+				dsn += " sslmode='require'"
+		except ConfigParser.Error:
+			pass
+		try:
+			username = config.get('database', 'username')
+			dsn += " user='{0}'".format(username)
+		except ConfigParser.Error:
+			pass
+		try:
+			password = config.get('database', 'password')
+			dsn += " password='{0}'".format(password)
+		except ConfigParser.Error:
+			pass
+		self._pool = ThreadedConnectionPool(config.get('database', 'min_database_connections'), config.get('database', 'max_database_connections'), dsn)
 
 	def get_cursor(self):
 		""" Gets a cursor in its own connection on the database """

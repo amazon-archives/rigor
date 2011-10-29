@@ -8,7 +8,6 @@ class Annotation(object):
 		self.domain = None
 		self.rank = None
 		self.model = None
-		self.value = None
 
 	def __str__(self):
 		return "Annotation {0}".format(vars(self))
