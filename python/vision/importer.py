@@ -7,7 +7,6 @@ imported.
 import vision.logger
 import vision.database
 import vision.hash
-import vision.exceptions
 
 from vision.model.image import Image
 from vision.model.annotation import Annotation

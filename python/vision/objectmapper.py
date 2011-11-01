@@ -30,10 +30,21 @@ class ObjectMapper(object):
 		image.annotations = _get_annotations_by_image_id(image_id)
 		return image
 
+	@reader
+	def get_images_by_domain(self, domain):
+		""" Retrieves all images for the domain from the database """
+		pass
+
+	def _get_images_by_domain(self, cursor, domain):
+		sql = "SELECT image_id FROM annotation WHERE domain = '%s';"
+		cursor.execute(sql, (domain, ))
+		rows = cursor.fetchall()
+		return [self._get_image_by_id(row[0], cursor) for row in rows]
+
 	def _get_tags_by_image_id(self, cursor, image_id):
 		sql = "SELECT name FROM tag where image_id = %s;"
 		cursor.execute(sql, (image_id, ))
-		rows = cursors.fetchall()
+		rows = cursor.fetchall()
 		return [row[0] for row in rows]
 
 	@transactional

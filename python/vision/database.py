@@ -1,7 +1,6 @@
 """ Database connection stuff """
 
 from vision.config import config
-from vision.exceptions import DatabaseError, DuplicateError
 
 import psycopg2
 import psycopg2.extensions
@@ -25,7 +24,7 @@ class VisionCursor(psycopg2.extras.DictCursor):
 		rows except one
 		"""
 		if self.rowcount != 1:
-			raise DatabaseError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
+			raise IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
 		return self.fetchone()
 
 
@@ -53,7 +52,7 @@ class VisionCursor(psycopg2.extras.DictCursor):
 		row mapper
 		"""
 		if self.rowcount != 1:
-			raise DatabaseError("Expected one record found, actually found %d" % self.rowcount)
+			raise IntegrityError("Expected one record found, actually found %d" % self.rowcount)
 		row = self.fetchone()
 		return row_mapper.map_row(row)
 
@@ -184,9 +183,6 @@ def _run_database_method(self, _commit_transaction, function, *args, **kwargs):
 			self._db.commit(cursor)
 		else:
 			self._db.rollback(cursor)
-	except IntegrityError as err:
-		self._db.rollback(cursor)
-		raise DuplicateError(err)
 	except:
 		self._db.rollback(cursor)
 		raise
