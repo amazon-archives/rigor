@@ -2,7 +2,6 @@
 Runs an algorithm across a set of images.  Result is a report containing image
 ID, detected model, expected model, and elapsed time
 """
-import vision.core
 from vision.config import config
 from vision.dbmapper import DatabaseMapper
 
