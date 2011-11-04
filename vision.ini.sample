@@ -1,0 +1,45 @@
+# Commented-out values are defaults.  Everything else
+# must be set for the application to run
+#
+[global]
+# Where the server image repository is mounted locally
+image_repository = /data/vision/images
+
+# Number of images to process in parallel
+#max_worker_threads = 8
+
+# Whether to copy images locally before processing
+#copy_local = yes
+
+[database]
+# Username for connecting to the database
+username = USER
+
+# Password for connecting to the database
+password = PASS
+
+# Host name for connecting to the database
+host = ea
+
+# Name of the database
+#database = vision
+
+# Whether to use SSL for the database connection
+#ssl = yes
+
+# Minimum number of pooled connections to database
+#min_database_connections = 0
+
+# Maximum number of pooled connections to database
+#max_database_connections = 10
+
+[import]
+# Filename containing global metadata for a directory
+#metadata_file = metadata.json
+
+# Date format for timestamps in metadata files
+#timestamp_format = %Y-%m-%dT%H:%M:%SZ
+
+[sibyl]
+# Location of sibyl's Python modules
+python_root = SIBYL_PATH
