@@ -36,4 +36,4 @@ class Domain(object):
 			t0 = time.time()
 			detected = self._detector.read_model(image_data)
 			elapsed = time.time() - t0
-			return (image.id, detected, image.annotations[0].model, elapsed) # XXX only supports one annotation
+			return (image['id'], detected, image['annotations'][0]['model'], elapsed) # XXX only supports one annotation

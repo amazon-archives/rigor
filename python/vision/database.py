@@ -19,75 +19,50 @@ import uuid
 class VisionCursor(psycopg2.extras.DictCursor):
 	""" Helper methods for DBAPI cursors """
 
-	def fetch_only_one(self):
+	def fetch_all(self, row_mapper=None):
+		""" Fetches all rows, applying row mapper if any """
+		if row_mapper:
+			return [row_mapper.map_row(row) for row in self.fetchall()]
+		else:
+			return self.fetchall()
+
+	def fetch_one(self, row_mapper=None):
+		""" Fetches zero or one row, applying row mapper if any """
+		row = self.fetchone()
+		if row is None:
+			return None
+		if row_mapper is None:
+			return row
+		return row_mapper.map_row(row)
+
+	def fetch_only_one(self, row_mapper=None):
 		"""
 		Like fetchone, but raises an exception if there are any number of
 		rows except one
 		"""
 		if self.rowcount != 1:
 			raise IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
-		return self.fetchone()
+		return self.fetch_one(row_mapper)
 
-
-	def fetch_all_objects(self, row_mapper):
-		"""
-		Fetches all rows as objects, constructed using the specified
-		row mapper
-		"""
-		rows = self.fetchall()
-		return [row_mapper.map_row(row) for row in rows]
-
-	def fetch_one_object(self, row_mapper):
-		"""
-		Fetches zero or one object, constructed using the specified
-		row mapper
-		"""
-		row = self.fetchone()
-		if row is None:
-			return None
-		return row_mapper.map_row(row)
-
-	def fetch_only_one_object(self, row_mapper):
-		"""
-		Fetches one and only one object, constructed using the specified
-		row mapper
-		"""
-		if self.rowcount != 1:
-			raise IntegrityError("Expected one record found, actually found %d" % self.rowcount)
-		row = self.fetchone()
-		return row_mapper.map_row(row)
-
-	def fetch_some(self, limit, offset=0):
-		"""
-		Fetches up to limit number of rows, with a possible offset
-		"""
-		if self.rowcount == 0:
-			return list()
-		elif offset > self.rowcount:
-			log.warn('Offset of %s > %s' % (offset, self.rowcount))
-			return list()
-		self.scroll(offset, mode='absolute')
-		return self.fetchmany(limit)
-
-	def fetch_some_objects(self, row_mapper, limit, offset=0):
-		"""
-		Fetches up to limit number of objects, with a possible offset
-		"""
+	def fetch_some(self, limit, offset=0, row_mapper=None):
+		""" Fetches up to limit number of objects, with a possible offset """
 		if self.rowcount == 0:
 			return list()
 		elif offset > self.rowcount:
 			return list()
 		self.scroll(offset, mode='absolute')
-		rows = self.fetchmany(limit)
-		return [row_mapper.map_row(row) for row in rows]
+		if row_mapper:
+			return [row_mapper.map_row(row) for row in self.fetchmany(limit)]
+		else:
+			return self.fetchmany(limit)
 
 class Database(object):
 	""" Holds a pool of connections to a database """
 
 	def __init__(self):
 		register_type(psycopg2.extensions.UNICODE)
-		self._databaseName = config.get('database', 'database')
-		dsn = "dbname='{0}' host='{1}'".format(self._databaseName, config.get('database', 'host'))
+		self._database_name = config.get('database', 'database')
+		dsn = "dbname='{0}' host='{1}'".format(self._database_name, config.get('database', 'host'))
 		try:
 			ssl = config.getboolean('database', 'ssl')
 			if ssl:
@@ -138,42 +113,35 @@ class Database(object):
 		self._pool.closeall()
 
 class RowMapper(object):
-	""" Maps a database row (as a dict) to a returned class """
-	def __init__(self, object_type, field_mappings=None, field_transforms=None):
+	"""
+	Maps a database row (as a dict) to a returned dict, with transformed fields
+	as necessary
+	"""
+	def __init__(self, field_mappings=None, field_transforms=None):
 		if field_mappings is None:
 			field_mappings = dict()
 		if field_transforms is None:
 			field_transforms = dict()
-		self._object_type = object_type
 		self._field_mappings = field_mappings
 		self._field_transforms = field_transforms
 
 	def map_row(self, row):
-		""" The actual method that does the mapping """
-		# First we'll build a list of None arguments to fill in the blanks
-		arg_count = self._object_type.__init__.im_func.func_code.co_argcount
-		arg_count -= 1 # ignore self argument
-		arguments = [None for argument in range(0, arg_count)]
-		# Now we'll instantiate the object with all of our Nones
-		obj = self._object_type(*arguments)
-		self.apply_values(obj, row)
-		return obj
-
-	def apply_values(self, obj, row):
 		"""
-		Applies all entries in the supplied dictionary as object
-		attributes, mapping names if necessary
+		Transforms keys and values as necessary to transform a database row into a
+		returned dict
 		"""
-		if not isinstance(row, dict):
-			row = dict(row)
+		new = dict()
 		for column_name, value in row.iteritems():
 			if self._field_mappings.has_key(column_name):
-				attribute_name = self._field_mappings[column_name]
+				key = self._field_mappings[column_name]
 			else:
-				attribute_name = column_name
-			if self._field_transforms.has_key(attribute_name):
-				value = self._field_transforms[attribute_name](value, column_name, row)
-			setattr(obj, attribute_name, value)
+				key = column_name
+			if key is None:
+				continue
+			if self._field_transforms.has_key(key):
+				value = self._field_transforms[key](value, column_name, row)
+			new[key] = value
+		return new
 
 def _run_database_method(self, _commit_transaction, function, *args, **kwargs):
 	real_function_name = "_" + function.__name__
@@ -203,8 +171,8 @@ def reader(function):
 		return _run_database_method(self, False, function, *args, **kwargs)
 	return _execute
 
-def uuid_transform(value, columnName, row):
+def uuid_transform(value, column_name, row):
 	""" Returns a UUID object """
 	if value is None:
 		return None
-	return uuid.UUID(row[columnName]).hex
+	return uuid.UUID(row[column_name]).hex

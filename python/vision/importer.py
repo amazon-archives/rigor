@@ -7,16 +7,14 @@ imported.
 import vision.logger
 import vision.database
 import vision.hash
+import vision.imageops
 
-from vision.model.image import Image
-from vision.model.annotation import Annotation
-from vision.objectmapper import ObjectMapper
+from vision.dbmapper import DatabaseMapper
 from vision.config import config
 from datetime import datetime
 from psycopg2 import IntegrityError
 
 import pyexiv2
-import Image as PILImage
 
 import os
 import uuid
@@ -30,6 +28,8 @@ class Importer(object):
 	extensions = ('jpg', 'png')
 	""" List of file extensions to scan """
 
+	modes = {'1': 1, 'L': 8, 'RGB': 24, 'RGBA': 32}
+
 	def __init__(self, directory, move=False):
 		"""
 		directory is which directory to scan for files; move is whether to move
@@ -40,7 +40,7 @@ class Importer(object):
 		self._move = move
 		self._metadata = dict()
 		self._database = vision.database.Database()
-		self._object_mapper = ObjectMapper(self._database)
+		self._database_mapper = DatabaseMapper(self._database)
 
 	def run(self):
 		""" Imports all images from the directory, returning the number processed """
@@ -63,53 +63,57 @@ class Importer(object):
 
 	def _import_image(self, path, basename):
 		""" Reads the metadata for an invididual image and returns an object ready to insert """
-		image = vision.model.image.Image()
-		image.locator = uuid.uuid4().hex
-		image.hash = vision.hash.hash(path)
+		image = dict()
+		image['locator'] = uuid.uuid4().hex
+		image['hash'] = vision.hash.hash(path)
 
-		data = PILImage.open(path)
-		image.resolution = data.size
-		image.format = data.format.lower()
-		image.depth = Image.modes[data.mode]
+		data = vision.imageops.read(path)
+		image['resolution'] = data.size
+		image['format'] = data.format.lower()
+		image['depth'] = Importer.modes[data.mode]
 
 		metadata = self._metadata.copy()
 		metadata.update(self._read_local_metadata(basename))
 		if 'timestamp' in metadata:
-			image.stamp = datetime.strptime(metadata['timestamp'], config.get('import', 'timestamp_format'))
+			image['stamp'] = datetime.strptime(metadata['timestamp'], config.get('import', 'timestamp_format'))
 		else:
-			image.stamp = datetime.utcfromtimestamp(os.path.getmtime(path))
+			image['stamp'] = datetime.utcfromtimestamp(os.path.getmtime(path))
 
 		if 'sensor' in metadata:
-			image.sensor = metadata['sensor']
+			image['sensor'] = metadata['sensor']
 		else:
 			exif = pyexiv2.ImageMetadata(path)
 			exif.read()
 			if 'Exif.Image.Make' in exif and 'Exif.Image.Model' in exif:
-				image.sensor = ' '.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
+				image['sensor'] = ' '.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
 
 		for key in ('location', 'source', 'tags'):
 			if key in metadata:
-				setattr(image, key, metadata[key])
+				image[key] = metadata[key]
+			else:
+				image[key] = None
 
 		annotations = list()
 		if 'annotations' in metadata:
 			for annotation in metadata['annotations']:
-				a = Annotation()
+				a = dict()
 				for key in ('boundary', 'domain', 'rank', 'model'):
 					if key in annotation:
-						setattr(a, key, annotation[key])
+						a[key] = annotation[key]
+					else:
+						a[key] = None
 				if 'timestamp' in annotation:
-					a.stamp = datetime.strptime(annotation['timestamp'], config.get('import', 'timestamp_format'))
+					a['stamp'] = datetime.strptime(annotation['timestamp'], config.get('import', 'timestamp_format'))
 				else:
-					a.stamp = image.stamp
+					a['stamp'] = image['stamp']
 				annotations.append(a)
-		image.annotations = annotations
+		image['annotations'] = annotations
 
-		destination = os.path.join(config.get('global', 'image_repository'), image.locator[0:2], image.locator[2:4], os.extsep.join((image.locator, image.format)))
+		destination = os.path.join(config.get('global', 'image_repository'), image['locator'][0:2], image['locator'][2:4], os.extsep.join((image['locator'], image['format'])))
 		# We take control of the transaction here so we can fail if copying/moving the file fails
-		cursor = self._object_mapper._db.get_cursor()
+		cursor = self._database_mapper._db.get_cursor()
 		try:
-			self._object_mapper._create_image(cursor, image)
+			self._database_mapper._create_image(cursor, image)
 			# Create destination directory, if it doesn't already exist.  try/except
 			# structure avoids race condition
 			try:
@@ -123,14 +127,14 @@ class Importer(object):
 				shutil.move(path, destination)
 			else:
 				shutil.copy2(path, destination)
-			self._object_mapper._db.commit(cursor)
-			self._logger.info("Imported image {0}".format(image.locator))
+			self._database_mapper._db.commit(cursor)
+			self._logger.info("Imported image {0}".format(image['locator']))
 			return image
 		except IntegrityError as e:
-			self._object_mapper._db.rollback(cursor)
+			self._database_mapper._db.rollback(cursor)
 			self._logger.warn("The image at '{0}' already exists in the database".format(path))
 		except:
-			self._object_mapper._db.rollback(cursor)
+			self._database_mapper._db.rollback(cursor)
 			raise
 
 	def _read_local_metadata(self, basename):

@@ -1,13 +1,13 @@
-from vision.model.image import Image
-from vision.model.annotation import Annotation
 from vision.database import transactional, reader, RowMapper, uuid_transform
 
-imageMapper = RowMapper(Image, field_transforms={'locator':uuid_transform})
-annotationMapper = RowMapper(Annotation)
+def resolution_transform(value, column_name, row):
+	if value is None:
+		return None
+	return (row['x_resolution'], row['y_resolution'])
 
-# TODO: make this all less OO.  Really, most can be done with dicts.
+imageMapper = RowMapper(field_mappings={'x_resolution': 'resolution', 'y_resolution': None}, field_transforms={'locator':uuid_transform, 'resolution':resolution_transform})
 
-class ObjectMapper(object):
+class DatabaseMapper(object):
 	""" Reads and write Images to database """
 
 	def __init__(self, database):
@@ -16,7 +16,7 @@ class ObjectMapper(object):
 	def _get_next_id(self, cursor, name):
 		sql = "SELECT NEXTVAL('{0}_id_seq');".format(name)
 		cursor.execute(sql)
-		row = cursor.fetchone()
+		row = cursor.fetch_one()
 		return row.values()[0]
 
 	@reader
@@ -27,26 +27,36 @@ class ObjectMapper(object):
 	def _get_image_by_id(self, cursor, image_id):
 		sql = "SELECT id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source FROM image WHERE id = %s;"
 		cursor.execute(sql, (image_id, ))
-		image = cursor.fetch_only_one_object(imageMapper)
-		image.tags = self._get_tags_by_image_id(cursor, image_id)
-		image.annotations = self._get_annotations_by_image_id(cursor, image_id)
+		image = cursor.fetch_only_one(imageMapper)
+		image['tags'] = self._get_tags_by_image_id(cursor, image_id)
+		image['annotations'] = self._get_annotations_by_image_id(cursor, image_id)
 		return image
 
 	@reader
-	def get_images_by_domain(self, domain):
-		""" Retrieves all images for the domain from the database """
+	def get_images_for_analysis(self, domain):
+		"""
+		Retrieves all images for the domain from the database, used for
+		algorithm analysis
+		"""
 		pass
 
-	def _get_images_by_domain(self, cursor, domain):
-		sql = "SELECT image_id FROM annotation WHERE domain = %s;"
+	def _get_images_for_analysis(self, cursor, domain):
+		sql = "SELECT distinct(image.id), image.locator, image.format FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s ORDER BY image.id;"
 		cursor.execute(sql, (domain, ))
-		rows = cursor.fetchall()
-		return [self._get_image_by_id(cursor, row[0]) for row in rows]
+		rows = cursor.fetch_all()
+		images = list()
+		for row in rows:
+			image = imageMapper.map_row(row)
+			sql = "SELECT model FROM annotation WHERE image_id = %s";
+			cursor.execute(sql, (row[0], ))
+			image['annotations'] = [dict(model=row[0]) for row in cursor.fetch_all()]
+			images.append(image)
+		return images
 
 	def _get_tags_by_image_id(self, cursor, image_id):
 		sql = "SELECT name FROM tag where image_id = %s;"
 		cursor.execute(sql, (image_id, ))
-		rows = cursor.fetchall()
+		rows = cursor.fetch_all()
 		return [row[0] for row in rows]
 
 	@transactional
@@ -57,12 +67,12 @@ class ObjectMapper(object):
 	def _create_image(self, cursor, image):
 		id = self._get_next_id(cursor, 'image')
 		sql = "INSERT INTO image (id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (id, image.locator, image.hash, image.stamp, image.sensor, image.resolution[0], image.resolution[1], image.format, image.depth, image.location, image.source))
-		image.id = id
-		if image.tags:
-			self._create_tags(cursor, image.tags, id)
-		if image.annotations:
-			for annotation in image.annotations:
+		cursor.execute(sql, (id, image['locator'], image['hash'], image['stamp'], image['sensor'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], image['location'], image['source']))
+		image['id'] = id
+		if image['tags']:
+			self._create_tags(cursor, image['tags'], id)
+		if image['annotations']:
+			for annotation in image['annotations']:
 				self._create_annotation(cursor, annotation, id)
 
 	def _create_tags(self, cursor, tags, image_id):
@@ -77,14 +87,12 @@ class ObjectMapper(object):
 	def _get_annotation_by_id(self, cursor, annotation_id):
 		sql = "SELECT id, stamp, boundary, domain, rank, model FROM annotation WHERE id = %s;"
 		cursor.execute(sql, (annotation_id, ))
-		annotation = cursor.fetch_only_one_object(annotationMapper)
-		return annotation
+		return cursor.fetch_only_one()
 
 	def _get_annotations_by_image_id(self, cursor, image_id):
 		sql = "SELECT id, stamp, boundary, domain, rank, model FROM annotation WHERE image_id = %s;"
 		cursor.execute(sql, (image_id, ))
-		annotations = cursor.fetch_all_objects(annotationMapper)
-		return annotations
+		return cursor.fetch_all()
 
 	@transactional
 	def create_annotation(self, annotation, image_id):
@@ -94,5 +102,5 @@ class ObjectMapper(object):
 	def _create_annotation(self, cursor, annotation, image_id):
 		id = self._get_next_id(cursor, 'annotation')
 		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, domain, rank, model) VALUES (%s, %s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (id, image_id, annotation.stamp, annotation.boundary, annotation.domain, annotation.rank, annotation.model))
-		annotation.id = id
+		cursor.execute(sql, (id, image_id, annotation['stamp'], annotation['boundary'], annotation['domain'], annotation['rank'], annotation['model']))
+		annotation['id'] = id
