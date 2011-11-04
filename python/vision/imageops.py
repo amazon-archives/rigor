@@ -11,6 +11,7 @@ import Image as PILImage
 
 import shutil
 import tempfile
+import os
 
 def fetch(image):
 	"""
@@ -19,10 +20,10 @@ def fetch(image):
 	depending on configuration.  File is returned as an open file object.  If it
 	is a temporary file, it will be deleted when it goes out of scope.
 	"""
-	source = os.extsep.join((os.path.join(config.get('global', 'image_repository'), image.uuid), image.format))
+	source = os.extsep.join((os.path.join(config.get('global', 'image_repository'), image.locator[0:2], image.locator[2:4], image.locator), image.format))
 	if config.getboolean('global', 'copy_local'):
 		destination = tempfile.NamedTemporaryFile(prefix='vision-tmp-', delete=True)
-		shutil.copy(source, destination.name)
+		shutil.copyfile(source, destination.name)
 		return destination
 	else:
 		return open(source, 'rb')

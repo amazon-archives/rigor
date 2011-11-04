@@ -1,7 +1,5 @@
-import vision.core
 import vision.importer
 
-import sys
 import argparse
 
 def main():

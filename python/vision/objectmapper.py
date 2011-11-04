@@ -1,9 +1,11 @@
 from vision.model.image import Image
 from vision.model.annotation import Annotation
-from vision.database import transactional, reader, RowMapper
+from vision.database import transactional, reader, RowMapper, uuid_transform
 
-imageMapper = RowMapper(Image)
+imageMapper = RowMapper(Image, field_transforms={'locator':uuid_transform})
 annotationMapper = RowMapper(Annotation)
+
+# TODO: make this all less OO.  Really, most can be done with dicts.
 
 class ObjectMapper(object):
 	""" Reads and write Images to database """
@@ -26,8 +28,8 @@ class ObjectMapper(object):
 		sql = "SELECT id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source FROM image WHERE id = %s;"
 		cursor.execute(sql, (image_id, ))
 		image = cursor.fetch_only_one_object(imageMapper)
-		image.tags = _get_tags_by_image_id(image_id)
-		image.annotations = _get_annotations_by_image_id(image_id)
+		image.tags = self._get_tags_by_image_id(cursor, image_id)
+		image.annotations = self._get_annotations_by_image_id(cursor, image_id)
 		return image
 
 	@reader
@@ -36,10 +38,10 @@ class ObjectMapper(object):
 		pass
 
 	def _get_images_by_domain(self, cursor, domain):
-		sql = "SELECT image_id FROM annotation WHERE domain = '%s';"
+		sql = "SELECT image_id FROM annotation WHERE domain = %s;"
 		cursor.execute(sql, (domain, ))
 		rows = cursor.fetchall()
-		return [self._get_image_by_id(row[0], cursor) for row in rows]
+		return [self._get_image_by_id(cursor, row[0]) for row in rows]
 
 	def _get_tags_by_image_id(self, cursor, image_id):
 		sql = "SELECT name FROM tag where image_id = %s;"

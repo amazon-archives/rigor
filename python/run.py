@@ -1,7 +1,5 @@
-import vision.core
 import vision.runner
 
-import sys
 import argparse
 
 def main():
@@ -11,7 +9,8 @@ def main():
 	args = parser.parse_args()
 	i = vision.runner.Runner(args.domain)
 	i.set_parameters(args.parameters)
-	i.run()
+	for result in i.run():
+		print("\t".join([str(x) for x in result]))
 
 if __name__ == '__main__':
 	main()

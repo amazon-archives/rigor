@@ -14,6 +14,7 @@ from psycopg2 import ProgrammingError
 from psycopg2 import IntegrityError
 
 import ConfigParser
+import uuid
 
 class VisionCursor(psycopg2.extras.DictCursor):
 	""" Helper methods for DBAPI cursors """
@@ -168,6 +169,8 @@ class RowMapper(object):
 		for column_name, value in row.iteritems():
 			if self._field_mappings.has_key(column_name):
 				attribute_name = self._field_mappings[column_name]
+			else:
+				attribute_name = column_name
 			if self._field_transforms.has_key(attribute_name):
 				value = self._field_transforms[attribute_name](value, column_name, row)
 			setattr(obj, attribute_name, value)
@@ -199,3 +202,9 @@ def reader(function):
 	def _execute(self, *args, **kwargs):
 		return _run_database_method(self, False, function, *args, **kwargs)
 	return _execute
+
+def uuid_transform(value, columnName, row):
+	""" Returns a UUID object """
+	if value is None:
+		return None
+	return uuid.UUID(row[columnName]).hex
