@@ -11,21 +11,24 @@ import vision.database
 
 from multiprocessing.pool import ThreadPool
 
-# TODO: we can use a process pool instead if we make Domains non-objects
+# TODO: until we make Domains non-objects somehow, allowing a process pool,
+# we're better off not using multiprocessing.
 
 class Runner(object):
 	""" Class for running algorithms against test images """
 
-	def __init__(self, domain):
+	def __init__(self, domain, limit=None):
 		"""
 		The domain dictates which algorithm to run (algorithm is fixed per domain),
-		and which images to use as sources.
+		and which images to use as sources.  The limit is an optional maximum number
+		of images to use as sources
 		"""
 		if domain not in vision.domain.kModules:
 			raise ValueError("Unknown domain '{0}'".format(domain))
 		module = __import__('vision.domain.{0}'.format(domain), fromlist=list('Domain'))
 		Domain = getattr(module, 'Domain')
 		self._domain = domain
+		self._limit = limit
 		self._logger = vision.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
 		self._database = vision.database.Database()
 		self._database_mapper = DatabaseMapper(self._database)
@@ -37,6 +40,6 @@ class Runner(object):
 
 	def run(self):
 		self._logger.debug('Fetching image IDs from database')
-		images = self._database_mapper.get_images_for_analysis(self._domain)
+		images = self._database_mapper.get_images_for_analysis(self._domain, self._limit)
 		self._logger.debug('Processing {0} images'.format(len(images)))
 		return self._pool.map(self._domain_object.run, images)
