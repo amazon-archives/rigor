@@ -5,8 +5,9 @@
 # Where the server image repository is mounted locally
 image_repository = /data/vision/images
 
-# Number of images to process in parallel
-#max_worker_threads = 8
+# Number of images to process in parallel.  Default will use number of CPUs
+# found.
+#max_workers = 8
 
 # Whether to copy images locally before processing
 #copy_local = yes

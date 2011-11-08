@@ -2,11 +2,12 @@
 
 import os
 from ConfigParser import RawConfigParser
+import multiprocessing
 
 kConfigurationPath = os.path.join(os.environ['HOME'], '.vision.ini')
 
 _defaults = dict(
-		max_worker_threads = 8,
+		max_workers = multiprocessing.cpu_count(),
 		copy_local = 'yes',
 		database = 'vision',
 		ssl = 'yes',

@@ -33,7 +33,7 @@ class Runner(object):
 		self._database = vision.database.Database()
 		self._database_mapper = DatabaseMapper(self._database)
 		self._domain_module = domain_module
-		self._pool = Pool(int(config.get('global', 'max_worker_threads')))
+		self._pool = Pool(int(config.get('global', 'max_workers')))
 
 	def set_parameters(self, parameters):
 		self._domain_module.set_parameters(parameters)
