@@ -1,3 +1,6 @@
+Prerequisites:
+psycopg2 Python module
+
 You may need to edit your LD_LIBRARY_PATH to point to the OpenCV and Sibyl
 libraries.
 
