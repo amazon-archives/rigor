@@ -1,1 +1,0 @@
-declare -x LD_LIBRARY_PATH="/home/sweetpea/dev/sibyl/build/modules/core:/home/sweetpea/dev/sibyl/build/modules/money:/home/sweetpea/dev/libs/opencv/current/linux-x86_64/lib"

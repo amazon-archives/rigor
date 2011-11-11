@@ -1,0 +1,9 @@
+You may need to edit your LD_LIBRARY_PATH to point to the OpenCV and Sibyl
+libraries.
+
+For example, if your development is in ~/dev, and you are on 64-bit Linux, you
+would use:
+
+export LD_LIBRARY_PATH=~/dev/sibyl/build/modules/core:~/dev/sibyl/build/modules/money:~/dev/libs/opencv/current/linux-x86_64/lib"
+
+Add this to your .bashrc to make things easier.
