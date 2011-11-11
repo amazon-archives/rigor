@@ -2,7 +2,7 @@
 Various utilities for dealing with images
 """
 
-from vision.config import config
+from rigor.config import config
 
 import Image
 
@@ -19,7 +19,7 @@ def fetch(image):
 	"""
 	source = os.extsep.join((os.path.join(config.get('global', 'image_repository'), image['locator'][0:2], image['locator'][2:4], image['locator']), image['format']))
 	if config.getboolean('global', 'copy_local'):
-		destination = tempfile.NamedTemporaryFile(prefix='vision-tmp-', delete=True)
+		destination = tempfile.NamedTemporaryFile(prefix='rigor-tmp-', delete=True)
 		shutil.copyfile(source, destination.name)
 		return destination
 	else:

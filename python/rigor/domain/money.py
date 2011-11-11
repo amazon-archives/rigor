@@ -1,6 +1,6 @@
 """ The money detector domain """
 
-import vision.imageops
+import rigor.imageops
 
 from sibyl.money import MoneyDetector
 import time
@@ -32,8 +32,8 @@ def run(image):
 	(detected model, time elapsed)
 	"""
 	global _detector
-	with vision.imageops.fetch(image) as image_file:
-		image_data = vision.imageops.read(image_file)
+	with rigor.imageops.fetch(image) as image_file:
+		image_data = rigor.imageops.read(image_file)
 		t0 = time.time()
 		detected = _detector.read_model(image_data)
 		elapsed = time.time() - t0

@@ -1,6 +1,6 @@
 """ Database connection stuff """
 
-from vision.config import config
+from rigor.config import config
 
 import psycopg2
 import psycopg2.extensions
@@ -16,7 +16,7 @@ from psycopg2 import IntegrityError
 import ConfigParser
 import uuid
 
-class VisionCursor(psycopg2.extras.DictCursor):
+class RigorCursor(psycopg2.extras.DictCursor):
 	""" Helper methods for DBAPI cursors """
 
 	def fetch_all(self, row_mapper=None):
@@ -84,7 +84,7 @@ class Database(object):
 	def get_cursor(self):
 		""" Gets a cursor in its own connection on the database """
 		connection = self._get_connection()
-		cursor = connection.cursor(cursor_factory=VisionCursor)
+		cursor = connection.cursor(cursor_factory=RigorCursor)
 		return cursor
 
 	def commit(self, cursor):

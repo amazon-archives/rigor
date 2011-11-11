@@ -1,4 +1,4 @@
-import vision.runner
+import rigor.runner
 
 import argparse
 
@@ -8,7 +8,7 @@ def main():
 	parser.add_argument('parameters', help='Path to parameters file')
 	parser.add_argument('-l', '--limit', metavar='COUNT', required=False, help='Maximum number of images to use')
 	args = parser.parse_args()
-	i = vision.runner.Runner(args.domain, args.parameters, args.limit)
+	i = rigor.runner.Runner(args.domain, args.parameters, args.limit)
 	for result in i.run():
 		print("\t".join([str(x) for x in result]))
 

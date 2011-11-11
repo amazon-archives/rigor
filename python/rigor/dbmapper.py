@@ -1,4 +1,4 @@
-from vision.database import transactional, reader, RowMapper, uuid_transform
+from rigor.database import transactional, reader, RowMapper, uuid_transform
 
 def resolution_transform(value, column_name, row):
 	if value is None:

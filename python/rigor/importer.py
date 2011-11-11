@@ -4,13 +4,13 @@ appropriate.  One-shot; an Importer should be created for each directory to be
 imported.
 """
 
-import vision.logger
-import vision.database
-import vision.hash
-import vision.imageops
+import rigor.logger
+import rigor.database
+import rigor.hash
+import rigor.imageops
 
-from vision.dbmapper import DatabaseMapper
-from vision.config import config
+from rigor.dbmapper import DatabaseMapper
+from rigor.config import config
 from datetime import datetime
 from psycopg2 import IntegrityError
 
@@ -23,7 +23,7 @@ import shutil
 import errno
 
 class Importer(object):
-	""" Class containing methods for importing images into the Vision framework """
+	""" Class containing methods for importing images into the Rigor framework """
 
 	extensions = ('jpg', 'png')
 	""" List of file extensions to scan """
@@ -36,10 +36,10 @@ class Importer(object):
 		files to the repository, as opposed to just copying them
 		"""
 		self._directory = directory
-		self._logger = vision.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
+		self._logger = rigor.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
 		self._move = move
 		self._metadata = dict()
-		self._database = vision.database.Database()
+		self._database = rigor.database.Database()
 		self._database_mapper = DatabaseMapper(self._database)
 
 	def run(self):
@@ -65,9 +65,9 @@ class Importer(object):
 		""" Reads the metadata for an invididual image and returns an object ready to insert """
 		image = dict()
 		image['locator'] = uuid.uuid4().hex
-		image['hash'] = vision.hash.hash(path)
+		image['hash'] = rigor.hash.hash(path)
 
-		data = vision.imageops.read(path)
+		data = rigor.imageops.read(path)
 		image['resolution'] = data.size
 		image['format'] = data.format.lower()
 		image['depth'] = Importer.modes[data.mode]

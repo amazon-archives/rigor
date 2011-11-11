@@ -4,12 +4,12 @@ import os
 from ConfigParser import RawConfigParser
 import multiprocessing
 
-kConfigurationPath = os.path.join(os.environ['HOME'], '.vision.ini')
+kConfigurationPath = os.path.join(os.environ['HOME'], '.rigor.ini')
 
 _defaults = dict(
 		max_workers = multiprocessing.cpu_count(),
 		copy_local = 'yes',
-		database = 'vision',
+		database = 'rigor',
 		ssl = 'yes',
 		min_database_connections = 0,
 		max_database_connections = 10,

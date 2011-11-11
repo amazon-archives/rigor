@@ -4,7 +4,7 @@ _log = None
 
 def getLogger(name, level=logging.DEBUG):
 	global _log
-	""" Returns a logger configured with Vision formatting """
+	""" Returns a logger configured with Rigor formatting """
 	log = None
 	if _log:
 		log = _log

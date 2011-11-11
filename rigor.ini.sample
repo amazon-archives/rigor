@@ -3,7 +3,7 @@
 #
 [global]
 # Where the server image repository is mounted locally
-image_repository = /data/vision/images
+image_repository = /data/rigor/images
 
 # Number of images to process in parallel.  Default will use number of CPUs
 # found.
@@ -23,7 +23,7 @@ password = PASS
 host = ea
 
 # Name of the database
-#database = vision
+#database = rigor
 
 # Whether to use SSL for the database connection
 #ssl = yes
