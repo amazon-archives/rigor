@@ -33,21 +33,27 @@ class DatabaseMapper(object):
 		return image
 
 	@reader
-	def get_images_for_analysis(self, domain, limit=None):
+	def get_images_for_analysis(self, domain, limit=None, random=False):
 		"""
 		Retrieves all images for the domain from the database, used for
 		algorithm analysis.  The optional limit limits the number of
-		images returned
+		images returned.  If random, the images will be randomly selected.
+		Otherwise, images will be returned sorted by ID.
 		"""
 		pass
 
-	def _get_images_for_analysis(self, cursor, domain, limit):
-		sql = "SELECT distinct(image.id), image.locator, image.format FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s"
+	def _get_images_for_analysis(self, cursor, domain, limit, random):
+		sql = "SELECT * FROM (SELECT distinct(image.id), image.locator, image.format FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image ORDER BY "
+		if random and limit:
+			sql += "random()"
+		else:
+			sql += "image.id"
+
 		if limit:
-			sql = "SELECT * FROM (" + sql + ") sub ORDER BY random() LIMIT %s;"
+			sql += " LIMIT %s;"
 			cursor.execute(sql, (domain, limit))
 		else:
-			sql += " ORDER BY image.id;"
+			sql += ";"
 			cursor.execute(sql, (domain, ))
 		rows = cursor.fetch_all()
 		images = list()
