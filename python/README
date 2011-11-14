@@ -1,12 +1,39 @@
-Prerequisites:
-psycopg2 Python module
+Rigor
+=====
+Kevin Rauwolf <kevin@blindsight.com>
 
-You may need to edit your LD_LIBRARY_PATH to point to the OpenCV and Sibyl
-libraries.
+Introduction
+------------
+Rigor is a framework for testing algorithms in a systematic fashion.  Users can import annotated images into the database, then run an algorithm against each of them in turn, finally producing a report that can be used for evaluating the algorithm.
 
-For example, if your development is in ~/dev, and you are on 64-bit Linux, you
-would use:
+Prerequisites
+-------------
+- Python v2.7 or higher
+- The Python Imaging Library (PIL)
+- psycopg2
+- image repository on Ea mounted locally
+- Sibyl library and Python extension modules built
 
-export LD_LIBRARY_PATH=~/dev/sibyl/build/modules/core:~/dev/sibyl/build/modules/money:~/dev/libs/opencv/current/linux-x86_64/lib"
+Configuration
+-------------
 
-Add this to your .bashrc to make things easier.
+Copy the `rigor.ini.sample` file to `.rigor.ini` in your home directory.
+
+- The `image_repository` is the local path where you have mounted the image repository on Ea
+- The `python_root` points to the built Python extension modules inside Sibyl.
+
+You may also need to set the `LD_LIBRARY_PATH` to point to your Sibyl and OpenCV libraries.  For example, if you keep everything in `~/dev` on a 64-bit Linux machine:
+
+	echo 'export LD_LIBRARY_PATH=~/dev/sibyl/build/modules/core:~/dev/sibyl/build/modules/money:~/dev/libs/opencv/current/linux-x86_64/lib' >> ~/.bashrc
+
+Use
+---
+To run an algorithm against all images in its domain, use the `run.py` command.  For example, to run against the MoneyDetector in Sibyl:
+
+	python run.py money ~/dev/sibyl/modules/money/data/config.xml
+
+You can also limit the number of images, to do a quick test.  The following will only run 100 images:
+
+	python run.py -l 100 money ~/dev/sibyl/modules/money/data/config.xml
+
+If you want more advanced features, have a look in the `examples` folder.
