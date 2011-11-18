@@ -11,6 +11,7 @@ Prerequisites
 - Python v2.7 or higher
 - The Python Imaging Library (PIL)
 - psycopg2
+- exiv2 for Python
 - image repository on Ea mounted locally
 - Sibyl library and Python extension modules built
 
