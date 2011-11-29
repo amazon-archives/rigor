@@ -41,4 +41,4 @@ def run(image, parameters=None):
 		t0 = time.time()
 		detected = _detector.detect(image_data)
 		elapsed = time.time() - t0
-		return (image['id'], detected, ",".join(annotation.model for annotation in image['annotations']), elapsed)
+		return (image['id'], detected, ",".join(annotation["model"] for annotation in image['annotations']), elapsed)

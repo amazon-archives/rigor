@@ -10,7 +10,10 @@ import rigor.logger
 import rigor.database
 
 from functools import partial
-from multiprocessing.pool import Pool
+
+kMaxWorkers = int(config.get('global', 'max_workers'))
+if kMaxWorkers != 1:
+	from multiprocessing.pool import Pool
 
 class Runner(object):
 	""" Class for running algorithms against test images """
@@ -33,7 +36,8 @@ class Runner(object):
 		self._database = rigor.database.Database()
 		self._database_mapper = DatabaseMapper(self._database)
 		self._domain_module = domain_module
-		self._pool = Pool(int(config.get('global', 'max_workers')))
+		if kMaxWorkers != 1:
+			self._pool = Pool(int(config.get('global', 'max_workers')))
 
 	def set_parameters(self, parameters):
 		self._parameters = parameters
@@ -44,4 +48,7 @@ class Runner(object):
 		images = self._database_mapper.get_images_for_analysis(self._domain, self._limit, self._random)
 		image_config = partial(self._domain_module.run, parameters=self._parameters)
 		self._logger.debug('Processing {0} images'.format(len(images)))
-		return self._pool.map(image_config, images)
+		if kMaxWorkers != 1:
+			return self._pool.map(image_config, images)
+		else:
+			return map(image_config, images)
