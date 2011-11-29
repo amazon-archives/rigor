@@ -1,4 +1,4 @@
-from rigor.database import transactional, reader, RowMapper, uuid_transform
+from rigor.database import transactional, reader, RowMapper, uuid_transform, polygon_transform
 
 def resolution_transform(value, column_name, row):
 	if value is None:
@@ -6,6 +6,7 @@ def resolution_transform(value, column_name, row):
 	return (row['x_resolution'], row['y_resolution'])
 
 imageMapper = RowMapper(field_mappings={'x_resolution': 'resolution', 'y_resolution': None}, field_transforms={'locator':uuid_transform, 'resolution':resolution_transform})
+annotationMapper = RowMapper(field_transforms={'boundary':polygon_transform})
 
 class DatabaseMapper(object):
 	""" Reads and write Images to database """
@@ -61,7 +62,7 @@ class DatabaseMapper(object):
 			image = imageMapper.map_row(row)
 			sql = "SELECT model, boundary FROM annotation WHERE image_id = %s";
 			cursor.execute(sql, (row[0], ))
-			image['annotations'] = [dict(model=row[0], boundary=row[1]) for row in cursor.fetch_all()]
+			image['annotations'] = [annotationMapper.map_row(row) for row in cursor.fetch_all()]
 			images.append(image)
 		return images
 

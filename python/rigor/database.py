@@ -176,3 +176,9 @@ def uuid_transform(value, column_name, row):
 	if value is None:
 		return None
 	return uuid.UUID(row[column_name]).hex
+
+def polygon_transform(value, column_name, row):
+	""" Returns a polygon as a list of tuples (points) """
+	if value is None:
+		return None
+	return list(eval(row[column_name]))
