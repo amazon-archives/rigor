@@ -5,8 +5,8 @@ def resolution_transform(value, column_name, row):
 		return None
 	return (row['x_resolution'], row['y_resolution'])
 
-imageMapper = RowMapper(field_mappings={'x_resolution': 'resolution', 'y_resolution': None}, field_transforms={'locator':uuid_transform, 'resolution':resolution_transform})
-annotationMapper = RowMapper(field_transforms={'boundary':polygon_transform})
+image_mapper = RowMapper(field_mappings={'x_resolution': 'resolution', 'y_resolution': None}, field_transforms={'locator':uuid_transform, 'resolution':resolution_transform})
+annotation_mapper = RowMapper(field_transforms={'boundary':polygon_transform})
 
 class DatabaseMapper(object):
 	""" Reads and write Images to database """
@@ -28,7 +28,7 @@ class DatabaseMapper(object):
 	def _get_image_by_id(self, cursor, image_id):
 		sql = "SELECT id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source FROM image WHERE id = %s;"
 		cursor.execute(sql, (image_id, ))
-		image = cursor.fetch_only_one(imageMapper)
+		image = cursor.fetch_only_one(image_mapper)
 		image['tags'] = self._get_tags_by_image_id(cursor, image_id)
 		image['annotations'] = self._get_annotations_by_image_id(cursor, image_id)
 		return image
@@ -59,10 +59,10 @@ class DatabaseMapper(object):
 		rows = cursor.fetch_all()
 		images = list()
 		for row in rows:
-			image = imageMapper.map_row(row)
+			image = image_mapper.map_row(row)
 			sql = "SELECT model, boundary FROM annotation WHERE image_id = %s";
 			cursor.execute(sql, (row[0], ))
-			image['annotations'] = [annotationMapper.map_row(row) for row in cursor.fetch_all()]
+			image['annotations'] = cursor.fetch_all(annotation_mapper)
 			images.append(image)
 		return images
 
@@ -100,7 +100,7 @@ class DatabaseMapper(object):
 	def _get_annotation_by_id(self, cursor, annotation_id):
 		sql = "SELECT id, stamp, boundary, domain, rank, model FROM annotation WHERE id = %s;"
 		cursor.execute(sql, (annotation_id, ))
-		return cursor.fetch_only_one()
+		return cursor.fetch_only_one(annotation_mapper)
 
 	def _get_annotations_by_image_id(self, cursor, image_id):
 		sql = "SELECT id, stamp, boundary, domain, rank, model FROM annotation WHERE image_id = %s;"
