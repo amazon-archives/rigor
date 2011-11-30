@@ -13,7 +13,11 @@ def main():
 	try:
 		parameters = json.loads(args.parameters)
 	except ValueError:
-		parameters = args.parameters
+		try:
+			with open(args.parameters, 'rb') as param_file:
+				parameters = json.load(param_file)
+		except ValueError:
+			parameters = args.parameters
 	i = rigor.runner.Runner(args.domain, parameters, args.limit, args.random)
 	for result in i.run():
 		print("\t".join([str(x) for x in result]))
