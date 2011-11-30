@@ -21,11 +21,14 @@ Configuration
 Copy the `rigor.ini.sample` file to `.rigor.ini` in your home directory.
 
 - The `image_repository` is the local path where you have mounted the image repository on Ea
-- The `python_root` points to the built Python extension modules inside Sibyl.
+- The `python_root` points to the built Python extension modules inside Sibyl. (for example, if your sibyl build directory is called "darwin-release", your python root will be something like python_root = /Users/kaolin/dev/sibyl/darwin-release/python/build/lib.macosx-10.7-intel-2.7/ )
 
 You may also need to set the `LD_LIBRARY_PATH` to point to your Sibyl and OpenCV libraries.  For example, if you keep everything in `~/dev` on a 64-bit Linux machine:
 
 	echo 'export LD_LIBRARY_PATH=~/dev/sibyl/build/modules/core:~/dev/sibyl/build/modules/money:~/dev/libs/opencv/current/linux-x86_64/lib' >> ~/.bashrc
+
+or on a 64-bit OS X machine:
+	echo 'export DYLD_LIBRARY_PATH=~dev/libs/opencv/current/darwin-x86_64/lib:~/dev/libs/sibyl/current/darwin-x86_64/lib ' >> ~/.bashrc
 
 Use
 ---
