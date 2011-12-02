@@ -14,8 +14,6 @@ from rigor.config import config
 from datetime import datetime
 from psycopg2 import IntegrityError
 
-import pyexiv2
-
 import os
 import uuid
 import json
@@ -41,6 +39,10 @@ class Importer(object):
 		self._metadata = dict()
 		self._database = rigor.database.Database()
 		self._database_mapper = DatabaseMapper(self._database)
+		try:
+			import pyexiv2
+		except ImportError:
+			self._logger.warning("Unable to import pyexiv2; sensor data should be supplied in metadata")
 
 	def run(self):
 		""" Imports all images from the directory, returning the number processed """
@@ -82,10 +84,13 @@ class Importer(object):
 		if 'sensor' in metadata:
 			image['sensor'] = metadata['sensor']
 		else:
-			exif = pyexiv2.ImageMetadata(path)
-			exif.read()
-			if 'Exif.Image.Make' in exif and 'Exif.Image.Model' in exif:
-				image['sensor'] = ' '.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
+			try:
+				exif = pyexiv2.ImageMetadata(path)
+				exif.read()
+				if 'Exif.Image.Make' in exif and 'Exif.Image.Model' in exif:
+					image['sensor'] = ' '.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
+			except NameError:
+				self._logger.warning("Image at {0}: No sensor listed in metadata, and EXIF data is not available; sensor will be null.".format(path))
 
 		for key in ('location', 'source', 'tags'):
 			if key in metadata:
