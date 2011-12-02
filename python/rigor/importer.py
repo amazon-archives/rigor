@@ -91,6 +91,7 @@ class Importer(object):
 					image['sensor'] = ' '.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
 			except NameError:
 				self._logger.warning("Image at {0}: No sensor listed in metadata, and EXIF data is not available; sensor will be null.".format(path))
+				image['sensor'] = None
 
 		for key in ('location', 'source', 'tags'):
 			if key in metadata:
