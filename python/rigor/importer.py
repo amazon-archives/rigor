@@ -145,7 +145,7 @@ class Importer(object):
 
 	def _read_local_metadata(self, basename):
 		""" Reads the metadata file for the image and sets defaults """
-		metadata_file = "{0}.json".format(basename)
+		metadata_file = os.path.join(self._directory, "{0}.json".format(basename))
 		if not os.path.isfile(metadata_file):
 			return dict()
 		return json.load(open(metadata_file, 'r'))
