@@ -9,12 +9,12 @@ import psycopg2.extras
 from psycopg2.extensions import register_type
 from psycopg2.extensions import register_adapter
 from psycopg2.extensions import adapt
+from psycopg2.extras import register_uuid
 from psycopg2.pool import ThreadedConnectionPool
 from psycopg2 import ProgrammingError
 from psycopg2 import IntegrityError
 
 import ConfigParser
-import uuid
 
 class RigorCursor(psycopg2.extras.DictCursor):
 	""" Helper methods for DBAPI cursors """
@@ -61,6 +61,7 @@ class Database(object):
 
 	def __init__(self):
 		register_type(psycopg2.extensions.UNICODE)
+		register_uuid()
 		self._database_name = config.get('database', 'database')
 		dsn = "dbname='{0}' host='{1}'".format(self._database_name, config.get('database', 'host'))
 		try:
@@ -175,10 +176,16 @@ def uuid_transform(value, column_name, row):
 	""" Returns a UUID object """
 	if value is None:
 		return None
-	return uuid.UUID(row[column_name]).hex
+	return row[column_name].hex
 
 def polygon_transform(value, column_name, row):
 	""" Returns a polygon as a list of tuples (points) """
 	if value is None:
 		return None
 	return list(eval(row[column_name]))
+
+def polygon_tuple_adapter(polygon):
+	""" Returns a string formatted in a way that PostgreSQL recognizes as a polygon, given a sequence of pairs """
+	if polygon is None:
+		return None
+	return str(tuple([tuple(point) for point in polygon]))

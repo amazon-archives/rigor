@@ -1,4 +1,4 @@
-from rigor.database import transactional, reader, RowMapper, uuid_transform, polygon_transform
+from rigor.database import transactional, reader, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
 
 def resolution_transform(value, column_name, row):
 	if value is None:
@@ -115,5 +115,5 @@ class DatabaseMapper(object):
 	def _create_annotation(self, cursor, annotation, image_id):
 		id = self._get_next_id(cursor, 'annotation')
 		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, domain, rank, model) VALUES (%s, %s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (id, image_id, annotation['stamp'], annotation['boundary'], annotation['domain'], annotation['rank'], annotation['model']))
+		cursor.execute(sql, (id, image_id, annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['rank'], annotation['model']))
 		annotation['id'] = id
