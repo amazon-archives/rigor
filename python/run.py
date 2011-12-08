@@ -7,7 +7,7 @@ def main():
 	parser = argparse.ArgumentParser(description='Runs algorithm on relevant images')
 	parser.add_argument('domain', help='Domain to run')
 	parser.add_argument('parameters', help='Path to parameters file, or JSON block containing parameters')
-	parser.add_argument('-l', '--limit', metavar='COUNT', required=False, help='Maximum number of images to use')
+	parser.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
 	parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
 	args = parser.parse_args()
 	try:
