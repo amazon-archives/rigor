@@ -21,7 +21,7 @@ parameters = {
 def main():
 	parser = argparse.ArgumentParser(description='Runs text detector on relevant images')
 	parser.add_argument('classifier_file', help='Path to classifier CLF')
-	parser.add_argument('-l', '--limit', metavar='COUNT', required=False, help='Maximum number of images to use')
+	parser.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
 	parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
 	args = parser.parse_args()
 	parameters["classifier_file"] = args.classifier_file
