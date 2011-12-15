@@ -1,3 +1,8 @@
+"""
+Used for testing money detector with ranges of parameters; stores JSON with parameters used and TSV:
+image id\tdetected model\texpected model\telapsed time
+"""
+
 from rigor.config import config
 from rigor.dbmapper import DatabaseMapper
 from rigor.database import Database
@@ -13,6 +18,7 @@ import json
 kDomain = 'money'
 kLimit = None
 
+""" initial parameters overridden below """
 parameters = {
 	"grid_x_count": 4,
 	"grid_y_count": 2,

@@ -36,9 +36,17 @@ def run(image, parameters=None):
 	global _detector
 	if parameters is not None and parameters != _parameters:
 		set_parameters(parameters)
-	with rigor.imageops.fetch(image) as image_file:
-		image_data = rigor.imageops.read(image_file)
-		t0 = time.time()
-		detected = _detector.detect(image_data)
-		elapsed = time.time() - t0
-		return (image['id'], detected, [annotation["boundary"] for annotation in image['annotations']], elapsed)
+	if parameters.has_key("evaluate_windows") and parameters["evaluate_windows"]:
+		with rigor.imageops.fetch(image) as image_file:
+			image_data = rigor.imageops.read(image_file)
+			t0 = time.time()
+			detected, undetected = _detector.evaluate_windows(image_data)
+			elapsed = time.time() - t0
+			return (image['id'], detected, undetected, [annotation["boundary"] for annotation in image['annotations']], elapsed)
+	else:
+		with rigor.imageops.fetch(image) as image_file:
+			image_data = rigor.imageops.read(image_file)
+			t0 = time.time()
+			detected = _detector.detect(image_data)
+			elapsed = time.time() - t0
+			return (image['id'], detected, [annotation["boundary"] for annotation in image['annotations']], elapsed)

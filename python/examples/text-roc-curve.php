@@ -1,4 +1,5 @@
 <?php
+	/* SEE text-roc.py; Kevin says "JUST EW!"; Kaolin shrugs, and tries to hide the code. */
 	$foo = file('../results/results.txt');
 	$accum = Array();
 	foreach ($foo as $row) {
@@ -21,4 +22,3 @@
 		$accum[$key]["fprate"] = $accum[$key]["falsepositive"]/$value["count"];
 	}
 	print_r($accum);
-?>

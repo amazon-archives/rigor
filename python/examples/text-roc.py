@@ -1,3 +1,7 @@
+"""
+Runs the text detector on images for a range of cascade_threshold values, stores FP, TP, FN in results.txt; feed this to text-roc-curve.php to see stats that can be plugged into a graph for an ROC curve.
+"""
+
 import rigor.runner
 import rigor.imageops
 from rigor.database import Database

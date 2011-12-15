@@ -1,3 +1,8 @@
+"""
+Runs the text detector algorithm, getting top-level ROI returns, and draws
+those ROIs in addition to the ground truthon a copy of the image
+"""
+
 import rigor.runner
 import rigor.imageops
 from rigor.database import Database
