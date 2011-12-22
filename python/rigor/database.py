@@ -1,5 +1,3 @@
-""" Database connection stuff """
-
 from rigor.config import config
 
 import psycopg2
@@ -17,7 +15,7 @@ from psycopg2 import IntegrityError
 import ConfigParser
 
 class RigorCursor(psycopg2.extras.DictCursor):
-	""" Helper methods for DBAPI cursors """
+	""" Normal DictCursor with row mapping and enhanced fetch capabilities """
 
 	def fetch_all(self, row_mapper=None):
 		""" Fetches all rows, applying row mapper if any """
@@ -37,27 +35,15 @@ class RigorCursor(psycopg2.extras.DictCursor):
 
 	def fetch_only_one(self, row_mapper=None):
 		"""
-		Like fetchone, but raises an exception if there are any number of
-		rows except one
+		Fetches one and only one row.  Raises IntegrityError if there is not
+		exactly one row found.
 		"""
 		if self.rowcount != 1:
 			raise IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
 		return self.fetch_one(row_mapper)
 
-	def fetch_some(self, limit, offset=0, row_mapper=None):
-		""" Fetches up to limit number of objects, with a possible offset """
-		if self.rowcount == 0:
-			return list()
-		elif offset > self.rowcount:
-			return list()
-		self.scroll(offset, mode='absolute')
-		if row_mapper:
-			return [row_mapper.map_row(row) for row in self.fetchmany(limit)]
-		else:
-			return self.fetchmany(limit)
-
 class Database(object):
-	""" Holds a pool of connections to a database """
+	""" Container for a database connection pool """
 
 	def __init__(self):
 		register_type(psycopg2.extensions.UNICODE)
@@ -83,32 +69,25 @@ class Database(object):
 		self._pool = ThreadedConnectionPool(config.get('database', 'min_database_connections'), config.get('database', 'max_database_connections'), dsn)
 
 	def get_cursor(self):
-		""" Gets a cursor in its own connection on the database """
-		connection = self._get_connection()
+		""" Gets a cursor from a connection in the pool """
+		connection = self._pool.getconn()
 		cursor = connection.cursor(cursor_factory=RigorCursor)
 		return cursor
 
+	def _close_cursor(self, cursor):
+		""" Closes a cursor and releases the connection to the pool """
+		cursor.close()
+		self._pool.putconn(cursor.connection)
+
 	def commit(self, cursor):
-		""" Commits any update queries on the cursor, then closes it """
+		""" Commits the transaction, then closes the cursor """
 		cursor.connection.commit()
 		self._close_cursor(cursor)
 
 	def rollback(self, cursor):
-		""" Rolls back any update queries on the cursor, then closes it """
+		""" Rolls back the transaction, then closes the cursor """
 		cursor.connection.rollback()
 		self._close_cursor(cursor)
-
-	def _get_connection(self):
-		""" Returns a connection from the database, abstracted so we can debug """
-		return self._pool.getconn()
-
-	def _close_cursor(self, cursor):
-		""" Closes a cursor and returns its connection to the pool """
-		cursor.close()
-		try:
-			self._pool.putconn(cursor.connection)
-		except Exception, e:
-			log.warn("Failed to close cursor: %s" % e)
 
 	def __del__(self):
 		self._pool.closeall()
