@@ -60,8 +60,8 @@ class DatabaseMapper(object):
 		images = list()
 		for row in rows:
 			image = image_mapper.map_row(row)
-			sql = "SELECT model, boundary FROM annotation WHERE image_id = %s";
-			cursor.execute(sql, (row[0], ))
+			sql = "SELECT model, boundary FROM annotation WHERE image_id = %s AND domain = %s;";
+			cursor.execute(sql, (row[0], domain, ))
 			image['annotations'] = cursor.fetch_all(annotation_mapper)
 			images.append(image)
 		return images
