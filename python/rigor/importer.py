@@ -15,6 +15,7 @@ from datetime import datetime
 from psycopg2 import IntegrityError
 
 import os
+import stat
 import uuid
 import json
 import shutil
@@ -43,10 +44,11 @@ class Importer(object):
 			import pyexiv2
 		except ImportError:
 			self._logger.warning("Unable to import pyexiv2; sensor data should be supplied in metadata")
+		os.umask(002)
 
 	def run(self):
 		""" Imports all images from the directory, returning the number processed """
-		self._read_global_metadata()
+		metadata = self._read_global_metadata()
 		for entry in os.listdir(self._directory):
 			absfile = os.path.abspath(os.path.join(self._directory, entry))
 			if not os.path.isfile(absfile):
@@ -61,9 +63,9 @@ class Importer(object):
 				# Extension not in known list
 				continue
 			# Looks like we have an image file
-			self._import_image(absfile, basename)
+			self.import_image(absfile, basename, metadata)
 
-	def _import_image(self, path, basename):
+	def import_image(self, path, basename, metadata):
 		""" Reads the metadata for an invididual image and returns an object ready to insert """
 		image = dict()
 		image['locator'] = uuid.uuid4().hex
@@ -74,15 +76,15 @@ class Importer(object):
 		image['format'] = data.format.lower()
 		image['depth'] = Importer.modes[data.mode]
 
-		metadata = self._metadata.copy()
-		metadata.update(self._read_local_metadata(basename))
-		if 'timestamp' in metadata:
-			image['stamp'] = datetime.strptime(metadata['timestamp'], config.get('import', 'timestamp_format'))
+		md = metadata.copy()
+		md.update(self._read_local_metadata(basename))
+		if 'timestamp' in md:
+			image['stamp'] = datetime.strptime(md['timestamp'], config.get('import', 'timestamp_format'))
 		else:
 			image['stamp'] = datetime.utcfromtimestamp(os.path.getmtime(path))
 
-		if 'sensor' in metadata:
-			image['sensor'] = metadata['sensor']
+		if 'sensor' in md:
+			image['sensor'] = md['sensor']
 		else:
 			try:
 				exif = pyexiv2.ImageMetadata(path)
@@ -94,14 +96,14 @@ class Importer(object):
 				image['sensor'] = None
 
 		for key in ('location', 'source', 'tags'):
-			if key in metadata:
-				image[key] = metadata[key]
+			if key in md:
+				image[key] = md[key]
 			else:
 				image[key] = None
 
 		annotations = list()
-		if 'annotations' in metadata:
-			for annotation in metadata['annotations']:
+		if 'annotations' in md:
+			for annotation in md['annotations']:
 				a = dict()
 				for key in ('boundary', 'domain', 'rank', 'model'):
 					if key in annotation:
@@ -133,6 +135,7 @@ class Importer(object):
 				shutil.move(path, destination)
 			else:
 				shutil.copy2(path, destination)
+			os.chmod(destination, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
 			self._database_mapper._db.commit(cursor)
 			self._logger.info("Imported image {0}".format(image['locator']))
 			return image
@@ -148,12 +151,13 @@ class Importer(object):
 		metadata_file = os.path.join(self._directory, "{0}.json".format(basename))
 		if not os.path.isfile(metadata_file):
 			return dict()
-		return json.load(open(metadata_file, 'r'))
+		with open(metadata_file, 'r') as metadata:
+			return json.load(metadata)
 
 	def _read_global_metadata(self):
 		""" Reads the metadata file for the image directory and sets defaults """
 		metadata_file = os.path.join(self._directory, config.get('import', 'metadata_file'))
 		if not os.path.isfile(metadata_file):
 			return
-		self._metadata = json.load(open(metadata_file, 'r'))
-
+		with open(metadata_file, 'r') as metadata:
+			return json.load(metadata)
