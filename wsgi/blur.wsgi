@@ -3,6 +3,8 @@ import rigor.imageops
 
 from rigor.dbmapper import DatabaseMapper, image_mapper
 
+from webob import Request, Response
+
 import sys
 import os.path
 import urlparse
@@ -17,11 +19,16 @@ kImageMaxHeight = 640
 gDatabase = rigor.database.Database()
 gDbMapper = DatabaseMapper(gDatabase)
 
-def get_random_image():
-	sql = "SELECT * FROM image WHERE id NOT IN (SELECT DISTINCT(image_id) FROM annotation WHERE annotation.domain = 'blur' OR annotation.domain = 'money') ORDER BY random() LIMIT 1;"
+def get_image(last_image):
+	sql = "SELECT * FROM image WHERE "
+	args = list()
+	if last_image:
+		sql += "id < %s AND "
+		args.append(last_image)
+	sql += "id NOT IN (SELECT DISTINCT(image_id) FROM annotation WHERE annotation.domain = 'blur' OR annotation.domain = 'money') ORDER BY stamp DESC LIMIT 1;"
 	cursor = gDatabase.get_cursor()
 	try:
-		cursor.execute(sql)
+		cursor.execute(sql, args)
 		image = cursor.fetch_one(image_mapper)
 	finally:
 		gDatabase.rollback(cursor)
@@ -38,26 +45,23 @@ def delete_annotation(image_id):
 		raise
 
 def application(environ, start_response):
-	status = '200 OK'
-	message = ''
-	image_id = ''
-	if environ['REQUEST_METHOD'] == 'POST':
-		try:
-			request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-		except ValueError:
-			request_body_size = 0
+	message = '&nbsp;'
+	image_id = None
+	undoable = False
 
-		query = urlparse.parse_qs(environ['wsgi.input'].read(request_body_size))
-		undo = query.get('u', [None,])[0]
-		last_image = query.get('l', [None,])[0]
-		if undo and last_image:
-			delete_annotation(last_image)
-			message = 'Annotation for {} removed'.format(last_image)
-		blur = query.get('b', [False, ])[0]
-		# noblur is a check to ensure something was actually selected here
-		noblur = query.get('n', [False, ])[0]
-		image_id = query.get('i', [None,])[0]
-		if blur or noblur:
+	req = Request(environ)
+	res = Response(content_type='text/html')
+
+	if req.method == 'POST':
+		undo = req.params.get('u', None)
+		blur = req.params.get('b', False)
+		noblur = req.params.get('n', False)
+		image_id = req.params.get('i', None)
+
+		if undo and image_id:
+			delete_annotation(image_id)
+			message = 'Annotation for {} removed'.format(image_id)
+		elif blur or noblur:
 			model = ("no" if noblur else "") + "blur"
 			annotation = {
 					'stamp': datetime.utcnow(),
@@ -68,13 +72,15 @@ def application(environ, start_response):
 			}
 			gDbMapper.create_annotation(annotation, image_id)
 			message = 'Image {} marked {}'.format(image_id, model)
+			undoable = True
 		else:
 			message = 'Image {} skipped'.format(image_id)
 
-	image = get_random_image()
+	image = get_image(image_id)
 	image_path = "/".join((kImageBaseUrl, image['locator'][0:2], image['locator'][2:4], ".".join((image['locator'], image['format']))))
 
-	output = """<html>
+	res.status_int = 200
+	res.body = """<html>
 	<head>
 		<title>Blur Classification</title>
 	</head>
@@ -84,7 +90,6 @@ def application(environ, start_response):
 			<p>The image below is: </p>
 			<form method="POST">
 				<input type="hidden" name="i" value="{}" />
-				<input type="hidden" name="l" value="{}" />
 				<input type="submit" name="b" value="Blurry" />
 				<input type="submit" name="n" value="Not Blurry" />
 				<input type="submit" name="s" value="Skip" />
@@ -95,11 +100,6 @@ def application(environ, start_response):
 			<img src="{}" style="max-width: {}px; max-height: {}px;" />
 		</div>
 	</body>
-</html>""".format(message, image['id'], image_id, "" if image_id else "<!-- ", "" if image_id else " -->", image_path, kImageMaxWidth, kImageMaxHeight)
+</html>""".format(message, image['id'], "" if undoable else "<!-- ", "" if undoable else " -->", image_path, kImageMaxWidth, kImageMaxHeight)
 
-	response_headers = [('Content-type', 'text/html'),
-			('Content-Length', str(len(output)))]
-
-	start_response(status, response_headers)
-
-	return [output]
+	return res(environ, start_response)
