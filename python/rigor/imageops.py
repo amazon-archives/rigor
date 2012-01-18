@@ -4,7 +4,10 @@ Various utilities for dealing with images
 
 from rigor.config import config
 
-import Image
+try:
+	import Image
+except ImportError:
+	import PIL.Image as Image
 
 import shutil
 import tempfile
