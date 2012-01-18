@@ -47,11 +47,11 @@ def run(image, parameters=None):
 		if "left" in _parameters:
 			left = _parameters["left"]
 		else:
-			left = width - _parameters["window_width"]) / 2
+			left = width - _parameters["window_width"] / 2
 		if "top" in _parameters:
 			top = _parameters["top"]
 		else:
-			top = height - _parameters["window_width"]) / 2
+			top = height - _parameters["window_width"] / 2
 		t0 = time.time()
 		detected = _detector.detect_blur(image_data, left, top)
 		elapsed = time.time() - t0
