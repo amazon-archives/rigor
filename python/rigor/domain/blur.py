@@ -41,10 +41,17 @@ def run(image, parameters=None):
 	if parameters is not None and parameters != _parameters:
 		set_parameters(parameters)
 	threshold = _parameters["threshold"]
-	left = _parameters["left"]
-	top = _parameters["top"]
 	with rigor.imageops.fetch(image) as image_file:
 		image_data = rigor.imageops.read(image_file)
+		width, height = image_data.size
+		if "left" in _parameters:
+			left = _parameters["left"]
+		else:
+			left = width - _parameters["window_width"]) / 2
+		if "top" in _parameters:
+			top = _parameters["top"]
+		else:
+			top = height - _parameters["window_width"]) / 2
 		t0 = time.time()
 		detected = _detector.detect_blur(image_data, left, top)
 		elapsed = time.time() - t0
