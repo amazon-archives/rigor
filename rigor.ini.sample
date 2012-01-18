@@ -38,6 +38,9 @@ host = ea
 # Where images should be copied or moved to once imported
 upload_repository = /data/rigor/import
 
+# Path to rsync binary, used for server-side import
+rsync_path = /usr/local/bin/rsync
+
 # Filename containing global metadata for a directory
 #metadata_file = metadata.json
 
