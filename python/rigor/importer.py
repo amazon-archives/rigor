@@ -117,7 +117,7 @@ class Importer(object):
 				annotations.append(a)
 		image['annotations'] = annotations
 
-		destination = os.path.join(config.get('global', 'upload_repository'), image['locator'][0:2], image['locator'][2:4], os.extsep.join((image['locator'], image['format'])))
+		destination = os.path.join(config.get('import', 'upload_repository'), image['locator'][0:2], image['locator'][2:4], os.extsep.join((image['locator'], image['format'])))
 		# We take control of the transaction here so we can fail if copying/moving the file fails
 		cursor = self._database_mapper._db.get_cursor()
 		try:
