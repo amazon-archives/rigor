@@ -25,7 +25,7 @@ def get_image(last_image):
 	if last_image:
 		sql += "id < %s AND "
 		args.append(last_image)
-	sql += "id NOT IN (SELECT DISTINCT(image_id) FROM annotation WHERE annotation.domain = 'blur' OR annotation.domain = 'money') ORDER BY stamp DESC LIMIT 1;"
+	sql += "id NOT IN (SELECT DISTINCT(image_id) FROM annotation WHERE annotation.domain = 'blur' OR annotation.domain = 'money') ORDER BY id DESC LIMIT 1;"
 	cursor = gDatabase.get_cursor()
 	try:
 		cursor.execute(sql, args)

@@ -35,6 +35,9 @@ host = ea
 #max_database_connections = 10
 
 [import]
+# Where images should be copied or moved to once imported
+upload_repository = /data/rigor/import
+
 # Filename containing global metadata for a directory
 #metadata_file = metadata.json
 
