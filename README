@@ -6,38 +6,121 @@ Introduction
 ------------
 Rigor is a framework for testing algorithms in a systematic fashion.  Users can import annotated images into the database, then run an algorithm against each of them in turn, finally producing a report that can be used for evaluating the algorithm.
 
+Images, once imported, are stored in a file tree using a unique identifier.  A separate set of database tables contain the image metadata, keyed to the image files using the same identifier.  Aside from image-specific attributes (size, depth, source, sensor, etc.), images can also have any number of tags.  Tags are there to assist users in building sets of images, which can be useful for more detailed analysis of algorithms.
+
+Each image can also have a number of annotations.  Annotating an image defines the ground truth in a particular domain, such as whether the image is blurry, where text is located, or what denomination bill is shown.  A single image can have annotations in different domains, and it can even have multiple annotations in the same domain (generally used when an annotation contains a boundary, and multiple ROIs exist).
+
+When running Rigor, by default all images and annotations in a particular will be run against the algorithm.  This can be limited to a smaller sample using the command-line tools, or much more extensively tweaked by writing a standalone Python application which includes the Rigor libraries.
+
 Prerequisites
 -------------
 - Python v2.7 or higher
 - The Python Imaging Library (PIL)
 - psycopg2
-- exiv2 for Python
-- image repository on Ea mounted locally
 - Sibyl library and Python extension modules built
+- image repository on Ea mounted locally, read-only
+- exiv2 for Python (import only)
+- import repository on Ea mounted locally, read-write (import only)
 
 Configuration
 -------------
-
-Copy the `rigor.ini.sample` file to `.rigor.ini` in your home directory.
+Copy the `rigor.ini.sample` file to `.rigor.ini` in your home directory.  Commented-out values reflect the defaults; uncomment and change them to alter settings.
 
 - The `image_repository` is the local path where you have mounted the image repository on Ea
 - The `python_root` points to the built Python extension modules inside Sibyl. (for example, if your sibyl build directory is called "darwin-release", your python root will be something like python_root = /Users/kaolin/dev/sibyl/darwin-release/python/build/lib.macosx-10.7-intel-2.7/ )
 
-You may also need to set the `LD_LIBRARY_PATH` to point to your Sibyl and OpenCV libraries.  For example, if you keep everything in `~/dev` on a 64-bit Linux machine:
+You may also need to set the `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH` to point to your Sibyl and OpenCV libraries.  For example, if you keep everything in `~/dev` on a 64-bit Linux machine:
 
 	echo 'export LD_LIBRARY_PATH=~/dev/sibyl/build/modules/core:~/dev/sibyl/build/modules/money:~/dev/libs/opencv/current/linux-x86_64/lib' >> ~/.bashrc
 
 or on a 64-bit OS X machine:
+
 	echo 'export DYLD_LIBRARY_PATH=~dev/libs/opencv/current/darwin-x86_64/lib:~/dev/libs/sibyl/current/darwin-x86_64/lib ' >> ~/.bashrc
+
+If you are planning on importing images, you will also want to mount the upload repository on Ea read-write, and set the `upload_repository` parameter to point there.
 
 Use
 ---
-To run an algorithm against all images in its domain, use the `run.py` command.  For example, to run against the MoneyDetector in Sibyl:
+Running
+~~~~~~~
+To run an algorithm against all images in its domain, use the `run.py` command.  The best way to see the available options is to use the `-h` option, as below:
 
-	python run.py money ~/dev/sibyl/modules/money/data/config.xml
+	python run.py -h
 
-You can also limit the number of images, to do a quick test.  The following will only run 100 images:
+For example, to limit the run to the first 100 images, you could run the following command:
 
 	python run.py -l 100 money ~/dev/sibyl/modules/money/data/config.xml
 
+Another example using the blur detector against all images, with parameters passed in directly:
+
+	python run.py blur '{"window_width": 256}'
+
 If you want more advanced features, have a look in the `examples` folder.
+
+Importing
+~~~~~~~~~
+Importing images basically entails copying the image file into the repository, and updating the database with metadata, tags, and annotations.  There is an import script that will do most of this automatically, when supplied with a basic metadata description file.
+
+CAUTION: Importing images into the database should be done carefully, as it is not always easy to undo mistakes.
+
+The `import.py` command takes a single directory, or a list of directories, and imports all of the images inside.  It expects to find a `metadata.json` file inside each directory containing metadata that applies to every file.
+
+Here is an example file with all of the metadata fields used.  Most are optional, but it is highly recommended to fill in as much information as is known, as that improves the quality of the database.
+
+.Example `metadata.json` file
+..............................................
+{
+  "source" : "Guangyu",                    <1>
+  "sensor" : "HTC Nexus One",              <2>
+  "timestamp" : "2011-02-04T21:24:56Z",    <3>
+  "location" : [ -122.269241, 37.871104 ], <4>
+  "tags" : [                               <5>
+    "training",
+    "money",
+    "obscured"
+  ],
+  "annotations" : [
+    {
+      "domain" : "money",                  <6>
+      "rank" : 2,                          <7>
+      "model" : "20d",                     <8>
+      "value" : 20,                        <9>
+      "boundary" : [                      <10>
+        [1, 2],
+        [2, 4],
+        [2, 8],
+        [6, 7]
+      ]
+    }
+  ]
+}
+..............................................
+
+<1> Where the image came from, useful for getting more details later
+<2> The device used to capture the image.  Will be extracted from EXIF if it's present and not supplied here.
+<3> The time and date (UTC) that the image was taken.  The file timestamp will be used if this is not supplied here.
+<4> WGS84 lon/lat Where the image was taken.  Ideally, this can be extracted from EXIF data, but at the moment this isn't supported
+<5> Tags are freeform.  The more the merrier.
+<6> Domain is a sort of namespace for the annotation.  The algorithm to test is chosen by the domain.
+<7> Rank is used when multiple models have the same value.  A lower rank is more likely to be encountered in the wild.
+<8> The model is the actual ground truth used to compare against the returned value from an algorithm.
+<9> The value is used for more freeform ground truth, or to augment the information given by the model.  For example, a bill has a front and back, each of different model, but the bill value remains the same.
+<10> The boundary is a list of coordinates, each defining a point in a polygonal bounding box.
+
+Here is a very basic metadata file.  While as much information as possible should be included in the metadata file, in some cases it may not be available.  The attributes below should be considered the bare minimum for metadata:
+
+.Example minimal `metadata.json` file
+..............................................
+{
+  "source" : "Guangyu",
+  "tags" : [
+    "training",
+    "money",
+    "obscured"
+  ]
+}
+..............................................
+
+It is also possible to supply a metadata file for each image.  Create a file with the same name as the image, but with `.json` as the extension.  For example, `img00010.jpg` would have an accompanying `img00010.json` metadata file.  Anything in this file will replace anything in the directory-wide `metadata.json` file, which will replace anything automatically extracted from the image.
+
+Once you run the `import.py` command, the images in the directory will be put into the database, and the source images will be either copied or moved to the upload tree.  Periodically, those files will be moved into the official image tree, and they will then be usable.  At the moment, that does mean a discrepency between the contents of the database and the filesystem, but it should be a short-lived difference.  It may be fixed in the future by flagging newly-uploaded data in the database, and preventing it from being used in Rigor trials until it is marked as active.
