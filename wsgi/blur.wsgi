@@ -30,6 +30,7 @@ def get_image(last_image):
 	try:
 		cursor.execute(sql, args)
 		image = cursor.fetch_one(image_mapper)
+		image['tags'] = gDbMapper._get_tags_by_image_id(cursor, image['id'])
 	finally:
 		gDatabase.rollback(cursor)
 	return image
@@ -99,7 +100,14 @@ def application(environ, start_response):
 		<div>
 			<img src="{}" style="max-width: {}px; max-height: {}px;" />
 		</div>
+		<div>
+			<ul>""".format(message, image['id'], "" if undoable else "<!-- ", "" if undoable else " -->", image_path, kImageMaxWidth, kImageMaxHeight)
+	for tag in image['tags']:
+		res.body += """				<li>{}</li>\n""".format(tag)
+	res.body += """
+			</ul>
+		</div>
 	</body>
-</html>""".format(message, image['id'], "" if undoable else "<!-- ", "" if undoable else " -->", image_path, kImageMaxWidth, kImageMaxHeight)
+</html>"""
 
 	return res(environ, start_response)
