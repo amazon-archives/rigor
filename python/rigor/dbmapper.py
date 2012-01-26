@@ -21,14 +21,25 @@ class DatabaseMapper(object):
 		return row.values()[0]
 
 	@reader
+	def get_only_image_by_id(self, image_id):
+		"""
+		Retrieves the image, but none of its tags or annotations, from the database
+		"""
+		pass
+
+	def _get_only_image_by_id(self, cursor, image_id):
+		sql = "SELECT id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source FROM image WHERE id = %s;"
+		cursor.execute(sql, (image_id, ))
+		image = cursor.fetch_only_one(image_mapper)
+		return image
+
+	@reader
 	def get_image_by_id(self, image_id):
 		""" Retrieves the image from the database """
 		pass
 
 	def _get_image_by_id(self, cursor, image_id):
-		sql = "SELECT id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source FROM image WHERE id = %s;"
-		cursor.execute(sql, (image_id, ))
-		image = cursor.fetch_only_one(image_mapper)
+		image = _get_only_image_by_id(cursor, image_id)
 		image['tags'] = self._get_tags_by_image_id(cursor, image_id)
 		image['annotations'] = self._get_annotations_by_image_id(cursor, image_id)
 		return image

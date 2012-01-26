@@ -12,7 +12,7 @@ import rigor.imageops
 from rigor.dbmapper import DatabaseMapper
 from rigor.config import config
 from datetime import datetime
-from psycopg2 import IntegrityError
+from rigor.database import IntegrityError
 
 import os
 import stat

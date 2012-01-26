@@ -9,8 +9,14 @@ from psycopg2.extensions import register_adapter
 from psycopg2.extensions import adapt
 from psycopg2.extras import register_uuid
 from psycopg2.pool import ThreadedConnectionPool
-from psycopg2 import ProgrammingError
-from psycopg2 import IntegrityError
+
+class IntegrityError(psycopg2.IntegrityError):
+	""" Wrapper for IntegrityError to hide implementation """
+	pass
+
+class ProgrammingError(psycopg2.ProgrammingError):
+	""" Wrapper for IntegrityError to hide implementation """
+	pass
 
 import ConfigParser
 
