@@ -50,3 +50,28 @@ rsync_path = /usr/local/bin/rsync
 [sibyl]
 # Location of sibyl's Python modules
 python_root = SIBYL_PATH
+
+[webapp]
+# Top level URL of the webapp
+base_url = /
+
+# URL of the image directory as served by the webapp
+image_url = /images
+
+# Port for http requests to the server
+http_port = 8080
+
+# Port for https requests to the server
+https_port = 8443
+
+# Path to server certificate file
+ssl_certificate = /home/sweetpea/belegost.crt
+
+# Path to server private key file
+ssl_private_key = /home/sweetpea/belegost.key
+
+# Path to Certificate Authority certificate file
+ssl_ca_certificate = /home/sweetpea/root.crt
+
+# Number of threads to start for serving http requests (per http/https server)
+server_threads = 30
