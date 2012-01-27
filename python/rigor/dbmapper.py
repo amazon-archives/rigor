@@ -1,5 +1,8 @@
 from rigor.database import transactional, reader, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
 
+import uuid
+from datetime import datetime, timedelta
+
 def resolution_transform(value, column_name, row):
 	if value is None:
 		return None
@@ -119,6 +122,15 @@ class DatabaseMapper(object):
 		return cursor.fetch_all()
 
 	@transactional
+	def delete_annotations(self, image_id, domain):
+		""" Removes all annotations for an image in a particular domain """
+		pass
+
+	def _delete_annotations(self, cursor, image_id, domain):
+		sql = "DELETE FROM annotation WHERE domain = %s AND image_id = %s;"
+		cursor.execute(sql, (domain, image_id))
+
+	@transactional
 	def create_annotation(self, annotation, image_id):
 		""" Stores the annotation in the database, setting its id """
 		pass
@@ -128,3 +140,52 @@ class DatabaseMapper(object):
 		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, domain, rank, model) VALUES (%s, %s, %s, %s, %s, %s, %s);"
 		cursor.execute(sql, (id, image_id, annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['rank'], annotation['model']))
 		annotation['id'] = id
+
+	def acquire_lock(self, image_id, domain, duration=300):
+		"""
+		Locks a particular image so that it is not served to other users while a
+		user is creating annotations in a particular domain.  The duration is the
+		amount of time in seconds the lock will be valid before expiring.
+
+		Returns either a key that is needed to release the lock, or None if the
+		image is already locked.  FIXME: Currently, a new lock can't be acquired
+		for an image/domain until the old lock has been removed completely, even if
+		it has expired.
+		"""
+		cursor = self._db.get_cursor()
+		retval = None
+		try:
+			retval = _acquire_lock(cursor, image_id, domain, duration)
+			self._db.commit(cursor)
+		except IntegrityError:
+			self._db.rollback(cursor)
+			# lock already exists; don't raise, just return None
+		except:
+			self._db.rollback(cursor)
+			raise
+		return retval
+
+	def _acquire_lock(self, cursor, image_id, domain, duration):
+		expiry = datetime.utcnow() + timedelta(seconds=int(duration))
+		key = uuid.uuid4().hex
+		sql = "INSERT INTO image_lock (image_id, domain, key, expiry) VALUES (%s, %s, %s, %s);"
+		cursor.execute(sql, (image_id, domain, key, expiry))
+		return key
+
+	@transactional
+	def release_lock(self, key, checked=True):
+		"""
+		Releases a lock that was previously acquired, using the key.
+		
+		If checked is True, and the lock doesn't exist or it has already expired,
+		then an IntegrityError will be raised.  This allows it to be used to
+		invalidate inserts on expired locks.
+		"""
+		pass
+
+	def _release_lock(self, cursor, key, checked):
+		now = datetime.utcnow()
+		sql = "DELETE FROM image_lock WHERE key = %s AND expiry > %s;"
+		cursor.execute(sql, (key, now))
+		if not cursor.rowcount > 0:
+			raise IntegrityError("Lock was not found")
