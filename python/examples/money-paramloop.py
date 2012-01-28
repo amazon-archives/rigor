@@ -28,41 +28,29 @@ parameters = {
 	"knn_limit": 10,
 	"match_params": [
 		[ 0.6, 0.2, 0.8, 0.25, 0.2 ],
-		[ 0.5, 0.18, 0.75, 0.25, 0.25 ]
+		[ 0.6, 0.18, 0.75, 0.25, 0.25 ]
 	],
 	"model_labels": [ 1, 1, 5, 5, 10, 10, 20, 20, 100, 100, 50, 50, 5, 5, 10, 10, 20, 20, 50, 50, 5, 5, 10, 10, 20, 20, 50, 50, 100, 100, 2, 2 ],
 	"model_limit": 32,
 	"model_names": [ "1a", "1b", "5a", "5b", "10a", "10b", "20a", "20b", "100a", "100b", "50a", "50b", "5c", "5d", "10c", "10d", "20c", "20d", "50c", "50d", "5e", "5f", "10e", "10f", "20e", "20f", "50e", "50f", "100c", "100d", "2a", "2b" ],
 	"pass_limit": 2,
-	"scale1": 0.2,
-	"scale2": 0.35,
+	"scale1": 0.22,
+	"scale2": 0.32,
 	"surf_params": [
 		[ 500, 4, 2, 4, 4, 2 ],
-		[ 600, 4, 2, 4, 4, 2 ]
+		[ 700, 2, 2, 4, 4, 2 ]
 	],
 	"top_model_limit": 5
 }
 
 def get_parameters():
-	for x in (0.6, 0.65):
+	for x in (0.16, 0.17, 0.18):
 		parameters["match_params"][0][1] = x
-		for x in (0.8, 0.85):
-			parameters["match_params"][0][2] = x
-			for x in (0.5, 0.6):
-				parameters["match_params"][1][0] = x
-				for x in (0.18, 0.20, 0.22):
-					parameters["scale1"] = x
-					for x in (0.32, 0.35, 0.38):
-						parameters["scale2"] = x
-						for x in (400, 500, 600):
-							parameters["surf_params"][0][1] = x
-							for x in (2, 4):
-								parameters["surf_params"][0][1] = x
-								for x in (500, 600, 700):
-									parameters["surf_params"][1][0] = x
-									for x in (2, 4):
-										parameters["surf_params"][1][1] = x
-										yield parameters
+		for x in (0.24, 0.25):
+			parameters["scale1"] = x
+			for x in (0.32, 0.33):
+				parameters["scale2"] = x
+				yield parameters
 
 def main():
 	rigor.domain.money.init(parameters)
