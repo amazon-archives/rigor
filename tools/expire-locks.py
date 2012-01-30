@@ -6,7 +6,7 @@ Removes all expired annotation locks from the database
 Example crontab entry:
 
 PYTHONPATH=/data/rigor/python
-*/5 * * * * /usr/local/bin/python /data/rigor/tools/expire-locks.py
+* * * * * /usr/local/bin/python /data/rigor/tools/expire-locks.py
 """
 
 import rigor.database
