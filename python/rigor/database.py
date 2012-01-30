@@ -10,14 +10,6 @@ from psycopg2.extensions import adapt
 from psycopg2.extras import register_uuid
 from psycopg2.pool import ThreadedConnectionPool
 
-class IntegrityError(psycopg2.IntegrityError):
-	""" Wrapper for IntegrityError to hide implementation """
-	pass
-
-class ProgrammingError(psycopg2.ProgrammingError):
-	""" Wrapper for IntegrityError to hide implementation """
-	pass
-
 import ConfigParser
 
 class RigorCursor(psycopg2.extras.DictCursor):
@@ -45,7 +37,7 @@ class RigorCursor(psycopg2.extras.DictCursor):
 		exactly one row found.
 		"""
 		if self.rowcount != 1:
-			raise IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
+			raise psycopg2.IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
 		return self.fetch_one(row_mapper)
 
 class Database(object):

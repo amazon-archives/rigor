@@ -2,6 +2,7 @@ from rigor.database import transactional, reader, RowMapper, uuid_transform, pol
 
 import uuid
 from datetime import datetime, timedelta
+import psycopg2
 
 def resolution_transform(value, column_name, row):
 	if value is None:
@@ -157,7 +158,7 @@ class DatabaseMapper(object):
 		try:
 			retval = _acquire_lock(cursor, image_id, domain, duration)
 			self._db.commit(cursor)
-		except IntegrityError:
+		except psycopg2.IntegrityError:
 			self._db.rollback(cursor)
 			# lock already exists; don't raise, just return None
 		except:
@@ -188,7 +189,7 @@ class DatabaseMapper(object):
 		sql = "DELETE FROM image_lock WHERE key = %s AND expiry > %s;"
 		cursor.execute(sql, (key, now))
 		if not cursor.rowcount > 0:
-			raise IntegrityError("Lock was not found")
+			raise psycopg2.IntegrityError("Lock was not found")
 
 	@transactional
 	def expire_locks(self):
