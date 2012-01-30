@@ -176,7 +176,7 @@ class DatabaseMapper(object):
 	def release_lock(self, key, checked=True):
 		"""
 		Releases a lock that was previously acquired, using the key.
-		
+
 		If checked is True, and the lock doesn't exist or it has already expired,
 		then an IntegrityError will be raised.  This allows it to be used to
 		invalidate inserts on expired locks.
@@ -189,3 +189,16 @@ class DatabaseMapper(object):
 		cursor.execute(sql, (key, now))
 		if not cursor.rowcount > 0:
 			raise IntegrityError("Lock was not found")
+
+	@transactional
+	def expire_locks(self):
+		"""
+		Removes all expired locks from the database.  This is meant to be run by a
+		periodic process, not by end-users.
+		"""
+		pass
+
+	def _expire_locks(self, cursor):
+		now = datetime.utcnow()
+		sql = "DELETE FROM image_lock WHERE expiry <= %s;"
+		cursor.execute(sql, (now, ))
