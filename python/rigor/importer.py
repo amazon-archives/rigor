@@ -12,7 +12,6 @@ import rigor.imageops
 from rigor.dbmapper import DatabaseMapper
 from rigor.config import config
 from datetime import datetime
-from rigor.database import IntegrityError
 
 import os
 import stat
@@ -20,6 +19,8 @@ import uuid
 import json
 import shutil
 import errno
+
+import psycopg2
 
 class Importer(object):
 	""" Class containing methods for importing images into the Rigor framework """
@@ -139,7 +140,7 @@ class Importer(object):
 			self._database_mapper._db.commit(cursor)
 			self._logger.info("Imported image {0}".format(image['locator']))
 			return image
-		except IntegrityError as e:
+		except psycopg2.IntegrityError as e:
 			self._database_mapper._db.rollback(cursor)
 			self._logger.warn("The image at '{0}' already exists in the database".format(path))
 		except:

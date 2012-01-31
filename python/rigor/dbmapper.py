@@ -2,6 +2,7 @@ from rigor.database import transactional, reader, RowMapper, uuid_transform, pol
 
 import uuid
 from datetime import datetime, timedelta
+import psycopg2
 
 def resolution_transform(value, column_name, row):
 	if value is None:
@@ -157,7 +158,7 @@ class DatabaseMapper(object):
 		try:
 			retval = _acquire_lock(cursor, image_id, domain, duration)
 			self._db.commit(cursor)
-		except IntegrityError:
+		except psycopg2.IntegrityError:
 			self._db.rollback(cursor)
 			# lock already exists; don't raise, just return None
 		except:
@@ -176,7 +177,7 @@ class DatabaseMapper(object):
 	def release_lock(self, key, checked=True):
 		"""
 		Releases a lock that was previously acquired, using the key.
-		
+
 		If checked is True, and the lock doesn't exist or it has already expired,
 		then an IntegrityError will be raised.  This allows it to be used to
 		invalidate inserts on expired locks.
@@ -188,4 +189,17 @@ class DatabaseMapper(object):
 		sql = "DELETE FROM image_lock WHERE key = %s AND expiry > %s;"
 		cursor.execute(sql, (key, now))
 		if not cursor.rowcount > 0:
-			raise IntegrityError("Lock was not found")
+			raise psycopg2.IntegrityError("Lock was not found")
+
+	@transactional
+	def expire_locks(self):
+		"""
+		Removes all expired locks from the database.  This is meant to be run by a
+		periodic process, not by end-users.
+		"""
+		pass
+
+	def _expire_locks(self, cursor):
+		now = datetime.utcnow()
+		sql = "DELETE FROM image_lock WHERE expiry <= %s;"
+		cursor.execute(sql, (now, ))
