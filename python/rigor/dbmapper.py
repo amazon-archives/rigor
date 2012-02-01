@@ -43,7 +43,7 @@ class DatabaseMapper(object):
 		pass
 
 	def _get_image_by_id(self, cursor, image_id):
-		image = _get_only_image_by_id(cursor, image_id)
+		image = self._get_only_image_by_id(cursor, image_id)
 		image['tags'] = self._get_tags_by_image_id(cursor, image_id)
 		image['annotations'] = self._get_annotations_by_image_id(cursor, image_id)
 		return image
@@ -174,7 +174,7 @@ class DatabaseMapper(object):
 		return key
 
 	@transactional
-	def release_lock(self, key, checked=True):
+	def release_lock(self, key, checked):
 		"""
 		Releases a lock that was previously acquired, using the key.
 
