@@ -123,6 +123,19 @@ class DatabaseMapper(object):
 		return cursor.fetch_all()
 
 	@transactional
+	def update_annotation_model(self, annotation_id, model):
+		"""
+		Replaces model in the database with new value.  The timestamp will be
+		updated to the current time.
+		"""
+		pass
+
+	def _update_annotation(self, cursor, annotation_id, model):
+		now = datetime.utcnow()
+		sql = "UPDATE annotation SET stamp = %s, model = %s WHERE id = %s;"
+		cursor.execute(sql, (now, model, annotation_id))
+
+	@transactional
 	def delete_annotations(self, image_id, domain):
 		""" Removes all annotations for an image in a particular domain """
 		pass
