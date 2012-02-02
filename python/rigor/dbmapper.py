@@ -120,7 +120,7 @@ class DatabaseMapper(object):
 	def _get_annotations_by_image_id(self, cursor, image_id):
 		sql = "SELECT id, stamp, boundary, domain, rank, model FROM annotation WHERE image_id = %s;"
 		cursor.execute(sql, (image_id, ))
-		return cursor.fetch_all()
+		return cursor.fetch_all(annotation_mapper)
 
 	@transactional
 	def update_annotation_model(self, annotation_id, model):
