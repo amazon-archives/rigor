@@ -151,6 +151,10 @@ class DatabaseMapper(object):
 		sql = "DELETE FROM annotation WHERE domain = %s AND image_id = %s;"
 		cursor.execute(sql, (domain, image_id))
 
+	def _delete_annotation(self, cursor, annotation_id):
+		sql = "DELETE FROM annotation WHERE annotation_id = %s;"
+		cursor.execute(sql, (annotation_id))
+
 	@transactional
 	def create_annotation(self, annotation, image_id):
 		""" Stores the annotation in the database, setting its id """
