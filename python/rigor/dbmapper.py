@@ -125,15 +125,22 @@ class DatabaseMapper(object):
 	@transactional
 	def update_annotation_model(self, annotation_id, model):
 		"""
-		Replaces model in the database with new value.  The timestamp will be
-		updated to the current time.
+		Replaces model in the database with new model.  The timestamp will be
+		updated to the current time.  Nothing will be changed if the model does not
+		change.  Returns True if a change was made, False otherwise.
 		"""
 		pass
 
-	def _update_annotation(self, cursor, annotation_id, model):
+	def _update_annotation_model(self, cursor, annotation_id, model):
 		now = datetime.utcnow()
+		sql = "SELECT model FROM annotation WHERE id = %s;"
+		cursor.execute(sql, (annotation_id, ))
+		original = cursor.fetch_one()[0]
+		if model == original:
+			return False
 		sql = "UPDATE annotation SET stamp = %s, model = %s WHERE id = %s;"
 		cursor.execute(sql, (now, model, annotation_id))
+		return True
 
 	@transactional
 	def delete_annotations(self, image_id, domain):
