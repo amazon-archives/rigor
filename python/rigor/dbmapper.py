@@ -194,6 +194,38 @@ class DatabaseMapper(object):
 		cursor.execute(sql, (image_id, domain, key, expiry))
 		return key
 
+	def _acquire_lock_atomic(self, cursor, domain, key, duration, query, parameters):
+		"""
+		Acquires a lock while querying for an available image at the same time.
+		This method will return an (image_id, key) tuple, or will raise an
+		exception if the key cannot be acquired.
+
+		The query must return a single image ID, and all parameters must be
+		supplied.
+		"""
+		expiry = datetime.utcnow() + timedelta(seconds=int(duration))
+		if key:
+			sql = "UPDATE image_lock SET expiry = %s WHERE image_id = (" + query + ") AND domain = %s AND key = %s RETURNING image_id;"
+			params = [expiry, ]
+			params.extend(parameters)
+			params.append(domain)
+			params.append(key)
+			cursor.execute(sql, params)
+			row = cursor.fetch_all()
+			if cursor.rowcount > 0:
+				return (row[0][0], key)
+		else:
+			key = uuid.uuid4().hex
+
+		sql = "INSERT INTO image_lock (image_id, domain, key, expiry) VALUES ((" + query + "), %s, %s, %s) RETURNING image_id;"
+		params = parameters
+		params.append(domain)
+		params.append(key)
+		params.append(expiry)
+		cursor.execute(sql, params)
+		row = cursor.fetch_one()
+		return (row[0], key)
+
 	@transactional
 	def release_lock(self, image_id, domain, key, checked):
 		"""
