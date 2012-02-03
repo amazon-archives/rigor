@@ -126,21 +126,14 @@ class DatabaseMapper(object):
 	def update_annotation_model(self, annotation_id, model):
 		"""
 		Replaces model in the database with new model.  The timestamp will be
-		updated to the current time.  Nothing will be changed if the model does not
-		change.  Returns True if a change was made, False otherwise.
+		updated to the current time.
 		"""
 		pass
 
 	def _update_annotation_model(self, cursor, annotation_id, model):
 		now = datetime.utcnow()
-		sql = "SELECT model FROM annotation WHERE id = %s;"
-		cursor.execute(sql, (annotation_id, ))
-		original = cursor.fetch_one()[0]
-		if model == original:
-			return False
 		sql = "UPDATE annotation SET stamp = %s, model = %s WHERE id = %s;"
 		cursor.execute(sql, (now, model, annotation_id))
-		return True
 
 	@transactional
 	def delete_annotations(self, image_id, domain):
@@ -166,39 +159,43 @@ class DatabaseMapper(object):
 		cursor.execute(sql, (id, image_id, annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['rank'], annotation['model']))
 		annotation['id'] = id
 
-	def acquire_lock(self, image_id, domain, duration=300):
+	@transactional
+	def acquire_lock(self, image_id, domain, key, duration):
 		"""
 		Locks a particular image so that it is not served to other users while a
 		user is creating annotations in a particular domain.  The duration is the
-		amount of time in seconds the lock will be valid before expiring.
+		amount of time in seconds the lock will be valid before expiring.  If a key
+		is supplied, it will be used to create the lock.  Otherwise, a new key will
+		be generated.
 
-		Returns either a key that is needed to release the lock, or None if the
-		image is already locked.  FIXME: Currently, a new lock can't be acquired
-		for an image/domain until the old lock has been removed completely, even if
-		it has expired.
+		If the lock already exists, its expiry will be updated using the new
+		duration.
+
+		A single key should be used for all locks acquired by a user.  This makes
+		it easier to navigate.
+
+		Throws an exception if the lock can't be acquired, otherwise it returns the
+		key.  FIXME: Currently, a new lock can't be acquired for an image/domain
+		until the old lock has been removed completely, even if it has expired.
 		"""
-		cursor = self._db.get_cursor()
-		retval = None
-		try:
-			retval = _acquire_lock(cursor, image_id, domain, duration)
-			self._db.commit(cursor)
-		except psycopg2.IntegrityError:
-			self._db.rollback(cursor)
-			# lock already exists; don't raise, just return None
-		except:
-			self._db.rollback(cursor)
-			raise
-		return retval
+		pass
 
-	def _acquire_lock(self, cursor, image_id, domain, duration):
+	def _acquire_lock(self, cursor, image_id, domain, key, duration):
 		expiry = datetime.utcnow() + timedelta(seconds=int(duration))
-		key = uuid.uuid4().hex
+		if key:
+			sql = "UPDATE image_lock SET expiry = %s WHERE image_id = %s AND domain = %s AND key = %s;"
+			cursor.execute(sql, (expiry, image_id, domain, key))
+			if cursor.rowcount > 0:
+				return key
+		else:
+			key = uuid.uuid4().hex
+
 		sql = "INSERT INTO image_lock (image_id, domain, key, expiry) VALUES (%s, %s, %s, %s);"
 		cursor.execute(sql, (image_id, domain, key, expiry))
 		return key
 
 	@transactional
-	def release_lock(self, key, checked):
+	def release_lock(self, image_id, domain, key, checked):
 		"""
 		Releases a lock that was previously acquired, using the key.
 
@@ -208,10 +205,10 @@ class DatabaseMapper(object):
 		"""
 		pass
 
-	def _release_lock(self, cursor, key, checked):
+	def _release_lock(self, cursor, image_id, domain, key, checked):
 		now = datetime.utcnow()
-		sql = "DELETE FROM image_lock WHERE key = %s AND expiry > %s;"
-		cursor.execute(sql, (key, now))
+		sql = "DELETE FROM image_lock WHERE image_id = %s AND domain = %s AND key = %s AND expiry > %s;"
+		cursor.execute(sql, (image_id, domain, key, now))
 		if not cursor.rowcount > 0:
 			raise psycopg2.IntegrityError("Lock was not found")
 
