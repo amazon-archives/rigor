@@ -209,7 +209,7 @@ class DatabaseMapper(object):
 		now = datetime.utcnow()
 		sql = "DELETE FROM image_lock WHERE image_id = %s AND domain = %s AND key = %s AND expiry > %s;"
 		cursor.execute(sql, (image_id, domain, key, now))
-		if not cursor.rowcount > 0:
+		if checked and not cursor.rowcount > 0:
 			raise psycopg2.IntegrityError("Lock was not found")
 
 	@transactional
