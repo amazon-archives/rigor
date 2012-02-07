@@ -1,4 +1,4 @@
-from rigor.database import transactional, reader, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
+from rigor.database import transactional, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
 
 import uuid
 from datetime import datetime, timedelta
@@ -24,7 +24,7 @@ class DatabaseMapper(object):
 		row = cursor.fetch_one()
 		return row.values()[0]
 
-	@reader
+	@transactional
 	def get_only_image_by_id(self, image_id):
 		"""
 		Retrieves the image, but none of its tags or annotations, from the database
@@ -37,7 +37,7 @@ class DatabaseMapper(object):
 		image = cursor.fetch_only_one(image_mapper)
 		return image
 
-	@reader
+	@transactional
 	def get_image_by_id(self, image_id):
 		""" Retrieves the image from the database """
 		pass
@@ -48,7 +48,7 @@ class DatabaseMapper(object):
 		image['annotations'] = self._get_annotations_by_image_id(cursor, image_id)
 		return image
 
-	@reader
+	@transactional
 	def get_images_for_analysis(self, domain, limit=None, random=False):
 		"""
 		Retrieves all images for the domain from the database, used for
@@ -107,7 +107,7 @@ class DatabaseMapper(object):
 		sql = "INSERT INTO tag (image_id, name) VALUES (%s, %s);"
 		cursor.executemany(sql, [(image_id, tag) for tag in tags])
 
-	@reader
+	@transactional
 	def get_annotation_by_id(self, annotation_id):
 		""" Retrieves the annotation from the database """
 		pass
