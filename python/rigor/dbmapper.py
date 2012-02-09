@@ -199,6 +199,25 @@ class DatabaseMapper(object):
 		cursor.execute(sql, (image_id, domain, key, expiry))
 		return key
 
+	@transactional
+	def renew_lock(self, image_id, domain, key, duration):
+		"""
+		Renews an extant, unexpired lock on a given image + domain.
+		Fails if the lock has expired or does not exist.
+
+		Throws an exception if the lock can't be acquired, otherwise it returns the
+		key.
+		"""
+		pass
+
+	def _renew_lock(self, cursor, image_id, domain, key, duration):
+		expiry = datetime.utcnow() + timedelta(seconds=int(duration))
+		now = datetime.utcnow()
+		sql = "UPDATE image_lock SET expiry = %s WHERE image_id = %s AND domain = %s AND key = %s AND expiry > %s;"
+		cursor.execute(sql, (expiry, image_id, domain, key, now))
+		if cursor.rowcount == 0:
+			raise psycopg2.IntegrityError("Lock was not found or had expired")
+
 	def _acquire_lock_atomic(self, cursor, domain, key, duration, query, parameters):
 		"""
 		Acquires a lock while querying for an available image at the same time.
