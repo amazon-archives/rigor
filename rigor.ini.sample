@@ -85,3 +85,6 @@ image_size = 64
 
 # Path to ImageMagick's 'convert' binary, used for generating thumbnails
 convert_path = /usr/local/bin/convert
+
+# Lockfile to prevent multiple thumbnailers from running
+lock_file = /tmp/rigor-thumbnail-lock
