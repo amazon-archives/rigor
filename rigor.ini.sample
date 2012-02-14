@@ -75,3 +75,13 @@ ssl_ca_certificate = /home/sweetpea/root.crt
 
 # Number of threads to start for serving http requests (per http/https server)
 server_threads = 30
+
+# Amount of time before web client sessions time out (in minutes)
+session_timeout = 1440
+
+[thumbnail]
+# Size of the largest dimension for thumbnail images
+image_size = 64
+
+# Path to ImageMagick's 'convert' binary, used for generating thumbnails
+convert_path = /usr/local/bin/convert
