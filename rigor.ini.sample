@@ -58,6 +58,9 @@ base_url = /
 # URL of the image directory as served by the webapp
 image_url = /images
 
+# URL of the thumbnail directory as served by the webapp
+thumbnail_url = /thumbnails
+
 # Port for http requests to the server
 http_port = 8080
 
