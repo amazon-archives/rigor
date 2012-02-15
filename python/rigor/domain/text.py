@@ -39,6 +39,7 @@ def run(image, parameters=None):
 	if parameters.has_key("evaluate_windows") and parameters["evaluate_windows"]:
 		with rigor.imageops.fetch(image) as image_file:
 			image_data = rigor.imageops.read(image_file)
+			print image_data.mode
 			t0 = time.time()
 			detected, undetected = _detector.evaluate_windows(image_data)
 			elapsed = time.time() - t0
