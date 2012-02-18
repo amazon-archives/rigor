@@ -1,7 +1,8 @@
 """ The text detector domain """
 
 import rigor.imageops
-
+import itertools
+import subprocess
 from sibyl.text import TextDetector
 import time
 
@@ -39,11 +40,19 @@ def run(image, parameters=None):
 	if parameters.has_key("evaluate_windows") and parameters["evaluate_windows"]:
 		with rigor.imageops.fetch(image) as image_file:
 			image_data = rigor.imageops.read(image_file)
-			print image_data.mode
+			print(image_data.mode)
 			t0 = time.time()
 			detected, undetected = _detector.evaluate_windows(image_data)
 			elapsed = time.time() - t0
-			return (image['id'], detected, undetected, [annotation["boundary"] for annotation in image['annotations']], elapsed)
+			print("Boom!")
+			tmp = list()
+			for grouping_info in detected:
+				roi =",".join(str(x) for x in itertools.chain.from_iterable(grouping_info['roi']))
+				tmp.append(",".join((str(grouping_info['layer']), roi, str(grouping_info['weight']))))
+			tmp = "[{}]".format(";".join(tmp))
+			subprocess.call(["octave","--path","/home/mudigonda/Projects/rigor/python/","--eval","mergeboxesv2({})".format(tmp)])
+			print("Octave done!")
+			return (image['id'],)
 	else:
 		with rigor.imageops.fetch(image) as image_file:
 			image_data = rigor.imageops.read(image_file)
