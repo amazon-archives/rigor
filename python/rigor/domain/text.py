@@ -5,6 +5,7 @@ import itertools
 import subprocess
 from sibyl.text import TextDetector
 import time
+from cStringIO import StringIO
 
 _detector = None
 _paramaters = None
@@ -40,17 +41,23 @@ def run(image, parameters=None):
 	if parameters.has_key("evaluate_windows") and parameters["evaluate_windows"]:
 		with rigor.imageops.fetch(image) as image_file:
 			image_data = rigor.imageops.read(image_file)
-			print(image_data.mode)
+			#print(image_data.mode)
 			t0 = time.time()
 			detected, undetected = _detector.evaluate_windows(image_data)
 			elapsed = time.time() - t0
-			print("Boom!")
-			tmp = list()
+			#print("Boom!")
+			tmp = StringIO()
+			#tmp.write("mergeboxesv2([")
+			tmp.write("disp([")
+			first = True
 			for grouping_info in detected:
+				if not first:
+					tmp.write(";")
+				first = False
 				roi =",".join(str(x) for x in itertools.chain.from_iterable(grouping_info['roi']))
-				tmp.append(",".join((str(grouping_info['layer']), roi, str(grouping_info['weight']))))
-			tmp = "[{}]".format(";".join(tmp))
-			subprocess.call(["octave","--path","/home/mudigonda/Projects/rigor/python/","--eval","mergeboxesv2({})".format(tmp)])
+				tmp.write(",".join((str(grouping_info['layer']), roi, str(grouping_info['weight']))))
+			tmp.write("])")
+			subprocess.call(["octave","--path","/home/mudigonda/Projects/rigor/python/","--eval",tmp.getvalue()])
 			print("Octave done!")
 			return (image['id'],)
 	else:
