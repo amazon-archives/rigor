@@ -47,8 +47,8 @@ def run(image, parameters=None):
 			elapsed = time.time() - t0
 			#print("Boom!")
 			tmp = StringIO()
-			#tmp.write("mergeboxesv2([")
-			tmp.write("disp([")
+			tmp.write("mergeboxesv2([")
+			#tmp.write("disp([")
 			first = True
 			for grouping_info in detected:
 				if not first:
