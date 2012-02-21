@@ -18,16 +18,16 @@ if kMaxWorkers != 1:
 class Runner(object):
 	""" Class for running algorithms against test images """
 
-	def __init__(self, domain, parameters, limit=None, random=False):
+	def __init__(self, runnable, domain, parameters, limit=None, random=False):
 		"""
 		The domain dictates which algorithm to run (algorithm is fixed per domain),
 		and which images to use as sources.  The limit is an optional maximum number
 		of images to use as sources
 		"""
-		if domain not in rigor.domain.kModules:
-			raise ValueError("Unknown domain '{0}'".format(domain))
-		domain_module = __import__('rigor.domain.{0}'.format(domain), fromlist=['init', 'run'])
-		domain_module.init(parameters)
+		#if domain not in rigor.domain.kModules:
+			#raise ValueError("Unknown domain '{0}'".format(domain))
+		#domain_module = __import__('rigor.domain.{0}'.format(domain), fromlist=['init', 'run'])
+		runnable.init(parameters)
 		self._domain = domain
 		self._parameters = parameters
 		self._limit = limit
@@ -35,7 +35,7 @@ class Runner(object):
 		self._logger = rigor.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
 		self._database = rigor.database.Database()
 		self._database_mapper = DatabaseMapper(self._database)
-		self._domain_module = domain_module
+		self._domain_module = runnable
 		if kMaxWorkers != 1:
 			self._pool = Pool(int(config.get('global', 'max_workers')))
 
