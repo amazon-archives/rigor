@@ -81,6 +81,13 @@ class DatabaseMapper(object):
 			images.append(image)
 		return images
 
+	@transactional
+	def get_tags_by_image_id(self,image_id):
+		"""
+		Retrieves all tags for a given image
+		"""
+		pass
+
 	def _get_tags_by_image_id(self, cursor, image_id):
 		sql = "SELECT name FROM tag where image_id = %s;"
 		cursor.execute(sql, (image_id, ))
