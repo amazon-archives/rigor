@@ -49,6 +49,27 @@ class DatabaseMapper(object):
 		return image
 
 	@transactional
+	def get_image_for_analysis(self, domain, image_id):
+		"""
+		Retrieves an image for the domain from the database, used for
+		algorithm analysis, and associated annotations
+		"""
+		pass
+
+	def _get_image_for_analysis(self, cursor, domain, image_id):
+		sql = "SELECT * FROM (SELECT distinct(image.id), image.locator, image.format FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s"
+		cursor.execute(sql, (domain, image_id))
+		rows = cursor.fetch_all()
+		images = list()
+		for row in rows:
+			image = image_mapper.map_row(row)
+			sql = "SELECT model, boundary FROM annotation WHERE image_id = %s AND domain = %s;";
+			cursor.execute(sql, (row[0], domain, ))
+			image['annotations'] = cursor.fetch_all(annotation_mapper)
+			images.append(image)
+		return images
+
+	@transactional
 	def get_images_for_analysis(self, domain, limit=None, random=False):
 		"""
 		Retrieves all images for the domain from the database, used for

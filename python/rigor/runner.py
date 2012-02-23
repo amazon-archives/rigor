@@ -18,7 +18,7 @@ if kMaxWorkers != 1:
 class Runner(object):
 	""" Class for running algorithms against test images """
 
-	def __init__(self, runnable, domain, parameters, limit=None, random=False):
+	def __init__(self, runnable, domain, parameters, limit=None, random=False, imageid=None):
 		"""
 		The domain dictates which algorithm to run (algorithm is fixed per domain),
 		and which images to use as sources.  The limit is an optional maximum number
@@ -32,6 +32,9 @@ class Runner(object):
 		self._parameters = parameters
 		self._limit = limit
 		self._random = random
+		self._imageid = imageid
+		if imageid and (limit or random):
+			raise ValueError("use either imageid or random/limit options, not both")
 		self._logger = rigor.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
 		self._database = rigor.database.Database()
 		self._database_mapper = DatabaseMapper(self._database)
@@ -45,7 +48,10 @@ class Runner(object):
 
 	def run(self):
 		self._logger.debug('Fetching image IDs from database')
-		images = self._database_mapper.get_images_for_analysis(self._domain, self._limit, self._random)
+		if self._imageid:
+			images = self._database_mapper.get_image_for_analysis(self._domain, self._imageid)
+		else:
+			images = self._database_mapper.get_images_for_analysis(self._domain, self._limit, self._random)
 		image_config = partial(self._domain_module.run, parameters=self._parameters)
 		self._logger.debug('Processing {0} images'.format(len(images)))
 		if kMaxWorkers != 1:
