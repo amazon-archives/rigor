@@ -18,7 +18,7 @@ if kMaxWorkers != 1:
 class Runner(object):
 	""" Class for running algorithms against test images """
 
-	def __init__(self, runnable, domain, parameters, limit=None, random=False, imageid=None):
+	def __init__(self, runnable, domain, parameters, limit=None, random=False, imageid=None, tags_require=None, tags_exclude=None):
 		"""
 		The domain dictates which algorithm to run (algorithm is fixed per domain),
 		and which images to use as sources.  The limit is an optional maximum number
@@ -41,6 +41,8 @@ class Runner(object):
 		self._domain_module = runnable
 		if kMaxWorkers != 1:
 			self._pool = Pool(int(config.get('global', 'max_workers')))
+		self._tags_require = tags_require
+		self._tags_exclude = tags_exclude
 
 	def set_parameters(self, parameters):
 		self._parameters = parameters
@@ -51,7 +53,7 @@ class Runner(object):
 		if self._imageid:
 			images = self._database_mapper.get_image_for_analysis(self._domain, self._imageid)
 		else:
-			images = self._database_mapper.get_images_for_analysis(self._domain, self._limit, self._random)
+			images = self._database_mapper.get_images_for_analysis(self._domain, self._limit, self._random, self._tags_require, self._tags_exclude)
 		image_config = partial(self._domain_module.run, parameters=self._parameters)
 		self._logger.debug('Processing {0} images'.format(len(images)))
 		if kMaxWorkers != 1:
