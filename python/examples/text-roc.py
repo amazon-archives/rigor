@@ -37,7 +37,7 @@ def main():
 	#for cascade_threshold in (.1,.2,.3,.4,.5,.6,.7,.8,.9):
 	for cascade_threshold in (.5,.6):
 		parameters['cascade_threshold'] = cascade_threshold
-		i = rigor.runner.Runner('text', parameters, args.limit, args.random)
+		i = rigor.runner.Runner('text', parameters, limit=args.limit, random=args.random)
 		for result in i.run():
 			detected = result[1]
 			expected = result[2]

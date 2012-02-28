@@ -30,7 +30,7 @@ def main():
 	parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
 	args = parser.parse_args()
 	parameters["classifier_file"] = args.classifier_file
-	i = rigor.runner.Runner('text', parameters, args.limit, args.random)
+	i = rigor.runner.Runner('text', parameters, limit=args.limit, random=args.random)
 	database_mapper = DatabaseMapper(Database())
 	for result in i.run():
 		detected = result[1]
