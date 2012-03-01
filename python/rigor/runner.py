@@ -10,7 +10,7 @@ def _algorithm_prefetch_default(image):
 	pass
 
 def _algorithm_postfetch_default(image, image_data):
-	pass
+	return image_data
 
 def _algorithm_run_default(image_data):
 	raise NotImplementedError()
@@ -22,8 +22,7 @@ def create_algorithm(domain, prefetch_hook=_algorithm_prefetch_default, postfetc
 	def _create_algorithm(image):
 		prefetch_hook(image)
 		with rigor.imageops.fetch(image) as image_file:
-			image_data = rigor.imageops.read(image_file)
-			postfetch_hook(image, image_data)
+			image_data = postfetch_hook(image, rigor.imageops.read(image_file))
 			t0 = time.time()
 			result = run_hook(image_data)
 			elapsed = time.time() - t0
