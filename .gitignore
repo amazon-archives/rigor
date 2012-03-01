@@ -2,3 +2,6 @@ images
 *.pyc
 *.swp
 *.swo
+*.so
+*.dylib
+*.m
