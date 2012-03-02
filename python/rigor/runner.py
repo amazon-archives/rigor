@@ -27,7 +27,11 @@ def create_algorithm(domain, prefetch_hook=_algorithm_prefetch_default, postfetc
 			result = run_hook(image_data)
 			elapsed = time.time() - t0
 			annotations = parse_annotations_hook(image['annotations'])
-			return (image['id'], result, annotations, elapsed)
+			if 'annotations' in image:
+				del(image['annotations'])
+			if 'tags' in image:
+				del(image['tags'])
+			return (image, result, annotations, elapsed)
 	return _create_algorithm
 
 ### runner ###
