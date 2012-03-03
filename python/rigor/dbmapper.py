@@ -57,7 +57,7 @@ class DatabaseMapper(object):
 		pass
 
 	def _get_image_for_analysis(self, cursor, domain, image_id):
-		sql = "SELECT * FROM (SELECT image.* FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id"
+		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source"
 		cursor.execute(sql, (domain, image_id))
 		rows = cursor.fetch_all()
 		images = list()

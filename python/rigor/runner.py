@@ -81,7 +81,7 @@ def create_applicator(domain, load_parameters_hook=_load_parameters_default, set
 	set_parameters_hook(parameters)
 	algorithm = create_algorithm(domain, **hooks)
 	if args.image_id:
-		applicator = rigor.applicator.SingleApplicator(domain, algorithm, parameters, evaluate_hook, image_id)
+		applicator = rigor.applicator.SingleApplicator(domain, algorithm, parameters, evaluate_hook, args.image_id)
 	else:
 		applicator = rigor.applicator.Applicator(domain, algorithm, parameters, evaluate_hook, limit=args.limit, random=args.random, tags_require=args.tags_require, tags_exclude=args.tags_exclude)
 	return applicator

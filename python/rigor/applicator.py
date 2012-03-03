@@ -55,7 +55,7 @@ class Applicator(BaseApplicator):
 class SingleApplicator(BaseApplicator):
 	""" Class for running algorithms against single test images """
 
-	def __init__(self, domain, algorithm, parameters, evaluate_hook):
+	def __init__(self, domain, algorithm, parameters, evaluate_hook, image_id):
 		"""
 		If a applicable is supplied, it will control the algorithm to be run.
 		Otherwise, the domain will be used to find an algorithm runner.
@@ -66,4 +66,4 @@ class SingleApplicator(BaseApplicator):
 	def apply(self):
 		image = self._database_mapper.get_image_for_analysis(self._domain, self._image_id)
 		self._logger.debug('Processing image ID {}'.format(self._image_id))
-		return self._evaluate_hook(self._algorithm(image))
+		return self._evaluate_hook(map(self._algorithm,image))
