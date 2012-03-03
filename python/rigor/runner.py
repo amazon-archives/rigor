@@ -40,7 +40,7 @@ def _arguments_default(parser):
 
 def parse_arguments(arguments_hook=_arguments_default, **kwargs):
 	parser = argparse.ArgumentParser(description='Runs algorithm on relevant images')
-	parser.add_argument('parameters', help='Path to parameters file, or JSON block containing parameters')
+	parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
 	limit = parser.add_mutually_exclusive_group()
 	limit.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
 	limit.add_argument('-i', '--image_id', type=int, metavar='IMAGE ID', required=False, help='Single image ID to run')
@@ -50,10 +50,17 @@ def parse_arguments(arguments_hook=_arguments_default, **kwargs):
 	arguments_hook(parser)
 	return parser.parse_args()
 
-def _parameters_default(parameters):
+def _set_parameters_default(parameters):
 	pass
 
-def read_parameters(args, params_hook=_parameters_default, **kwargs):
+def _load_parameters_default(args):
+	"""
+	If parameters are specified, it tries to read them as a JSON block.  If it
+	can't, it tries to open them and read them as a JSON file.  If it can't do
+	that either, then it just passes them along unchanged.
+	"""
+	if not args.parameters:
+		return None
 	try:
 		parameters = json.loads(args.parameters)
 	except ValueError:
@@ -62,16 +69,16 @@ def read_parameters(args, params_hook=_parameters_default, **kwargs):
 				parameters = json.load(param_file)
 		except ValueError:
 			parameters = args.parameters
-	params_hook(parameters)
 	return parameters
 
 def _evaluate_hook_default(results):
 	for result in results:
 		print '\t'.join(str(field) for field in result)
 
-def create_applicator(domain, evaluate_hook=_evaluate_hook_default, **hooks):
+def create_applicator(domain, load_parameters_hook=_load_parameters_default, set_parameters_hook=_set_parameters_default, evaluate_hook=_evaluate_hook_default, **hooks):
 	args = parse_arguments(**hooks)
-	parameters = read_parameters(args, **hooks)
+	parameters = load_parameters_hook(args)
+	set_parameters_hook(parameters)
 	algorithm = create_algorithm(domain, **hooks)
 	if args.image_id:
 		applicator = rigor.applicator.SingleApplicator(domain, algorithm, parameters, evaluate_hook, image_id)
