@@ -43,6 +43,10 @@ class Thumbnailer(object):
 				images = cursor.fetch_all(rigor.dbmapper.image_mapper)
 			for image in images:
 				source_path = rigor.imageops.find(image)
+				# Newly-imported images won't exist for some time.  No point failing
+				# noisily.
+				if not os.path.exists(source_path):
+					continue
 				destination_path = rigor.imageops.find_thumbnail(image, self._size)
 				if os.path.exists(destination_path):
 					continue
