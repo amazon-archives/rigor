@@ -38,7 +38,10 @@ def create_algorithm(domain, prefetch_hook=_algorithm_prefetch_default, postfetc
 def _arguments_default(parser):
 	pass
 
-def parse_arguments(arguments_hook=_arguments_default, **kwargs):
+def _parse_extended_arguments_default(parser):
+	pass
+
+def parse_arguments(arguments_hook=_arguments_default, parse_extended_arguments_hook=_parse_extended_arguments_default, **kwargs):
 	parser = argparse.ArgumentParser(description='Runs algorithm on relevant images')
 	parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
 	limit = parser.add_mutually_exclusive_group()
@@ -48,7 +51,9 @@ def parse_arguments(arguments_hook=_arguments_default, **kwargs):
 	parser.add_argument('--tag_require', action='append', dest='tags_require', required=False, help='Tag that must be present on selected images')
 	parser.add_argument('--tag_exclude', action='append', dest='tags_exclude', required=False, help='Tag that must not be present on selected images')
 	arguments_hook(parser)
-	return parser.parse_args()
+	arguments = parser.parse_args()
+	parse_extended_arguments_hook(arguments)
+	return arguments
 
 def _set_parameters_default(parameters):
 	pass
