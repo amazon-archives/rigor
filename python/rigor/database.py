@@ -9,8 +9,8 @@ from psycopg2.extensions import register_adapter
 from psycopg2.extensions import adapt
 from psycopg2.extras import register_uuid
 from psycopg2.pool import ThreadedConnectionPool
-from psycopg2 import ProgrammingError
-from psycopg2 import IntegrityError
+
+from contextlib import contextmanager
 
 import ConfigParser
 
@@ -39,7 +39,7 @@ class RigorCursor(psycopg2.extras.DictCursor):
 		exactly one row found.
 		"""
 		if self.rowcount != 1:
-			raise IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
+			raise psycopg2.IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
 		return self.fetch_one(row_mapper)
 
 class Database(object):
@@ -68,11 +68,21 @@ class Database(object):
 			pass
 		self._pool = ThreadedConnectionPool(config.get('database', 'min_database_connections'), config.get('database', 'max_database_connections'), dsn)
 
-	def get_cursor(self):
+	@contextmanager
+	def get_cursor(self, commit=True):
 		""" Gets a cursor from a connection in the pool """
 		connection = self._pool.getconn()
 		cursor = connection.cursor(cursor_factory=RigorCursor)
-		return cursor
+		try:
+			yield cursor
+		except:
+			self.rollback(cursor)
+			raise
+		else:
+			if commit:
+				self.commit(cursor)
+			else:
+				self.rollback(cursor)
 
 	def _close_cursor(self, cursor):
 		""" Closes a cursor and releases the connection to the pool """
@@ -123,32 +133,13 @@ class RowMapper(object):
 			new[key] = value
 		return new
 
-def _run_database_method(self, _commit_transaction, function, *args, **kwargs):
-	real_function_name = "_" + function.__name__
-	real_function = getattr(self, real_function_name)
-
-	cursor = self._db.get_cursor()
-	try:
-		retval = real_function(cursor, *args, **kwargs)
-		if _commit_transaction:
-			self._db.commit(cursor)
-		else:
-			self._db.rollback(cursor)
-	except:
-		self._db.rollback(cursor)
-		raise
-	return retval
-
 def transactional(function):
 	""" Runs a function wrapped in a single transaction """
 	def _execute(self, *args, **kwargs):
-		return _run_database_method(self, True, function, *args, **kwargs)
-	return _execute
-
-def reader(function):
-	""" Runs a function wrapped in a single transaction, rolled back at the end """
-	def _execute(self, *args, **kwargs):
-		return _run_database_method(self, False, function, *args, **kwargs)
+		real_function_name = "_" + function.__name__
+		real_function = getattr(self, real_function_name)
+		with self._db.get_cursor() as cursor:
+			return real_function(cursor, *args, **kwargs)
 	return _execute
 
 def uuid_transform(value, column_name, row):

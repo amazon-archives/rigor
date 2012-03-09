@@ -4,6 +4,11 @@
 Synchronizes files from the import directory to the image directory.  Used to
 allow users write access to the import directory, while retaining a read-only
 image repository.
+
+Example crontab entry:
+
+PYTHONPATH=/data/rigor/python
+*/5 * * * * /usr/local/bin/python /data/rigor/tools/sync.py
 """
 
 from rigor.config import config

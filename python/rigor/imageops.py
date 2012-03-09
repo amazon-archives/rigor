@@ -13,11 +13,29 @@ import shutil
 import tempfile
 import os
 
+def build_path(image, base_path, separator = os.sep):
+	"""
+	Given a base path, constructs a path to the image
+	"""
+	return os.extsep.join((separator.join((base_path, image['locator'][0:2], image['locator'][2:4], image['locator'])), image['format']))
+
+def build_thumbnail_path(image, base_path, size, separator = os.sep):
+	"""
+	Given a base path, constructs a path to the image's thumbnail
+	"""
+	return os.extsep.join((separator.join((base_path, '{0}x{0}'.format(int(size)), image['locator'][0:2], image['locator'][2:4], image['locator'])), image['format']))
+
 def find(image):
 	"""
 	Returns the location in the repository where this image can be found.
 	"""
-	return os.extsep.join((os.path.join(config.get('global', 'image_repository'), image['locator'][0:2], image['locator'][2:4], image['locator']), image['format']))
+	return build_path(image, config.get('global', 'image_repository'))
+
+def find_thumbnail(image, size):
+	"""
+	Given a base path, constructs a path to the image's thumbnail
+	"""
+	return build_thumbnail_path(image, config.get('thumbnail', 'image_repository'), size)
 
 def fetch(image):
 	"""

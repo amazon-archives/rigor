@@ -1,2 +1,4 @@
 images
 *.pyc
+*.swp
+*.swo

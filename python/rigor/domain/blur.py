@@ -42,16 +42,7 @@ def run(image, parameters=None):
 		set_parameters(parameters)
 	with rigor.imageops.fetch(image) as image_file:
 		image_data = rigor.imageops.read(image_file)
-		width, height = image_data.size
-		if "left" in _parameters:
-			left = _parameters["left"]
-		else:
-			left = (width - _parameters["window_width"]) / 2
-		if "top" in _parameters:
-			top = _parameters["top"]
-		else:
-			top = (height - _parameters["window_width"]) / 2
 		t0 = time.time()
-		detected = _detector.detect_blur(image_data, left, top)
+		detected = _detector.detect_blur(image_data)
 		elapsed = time.time() - t0
 		return (image['id'], detected, image['annotations'][0]['model'], elapsed)

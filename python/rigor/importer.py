@@ -12,7 +12,6 @@ import rigor.imageops
 from rigor.dbmapper import DatabaseMapper
 from rigor.config import config
 from datetime import datetime
-from psycopg2 import IntegrityError
 
 import os
 import stat
@@ -20,6 +19,8 @@ import uuid
 import json
 import shutil
 import errno
+
+import psycopg2
 
 class Importer(object):
 	""" Class containing methods for importing images into the Rigor framework """
@@ -119,32 +120,27 @@ class Importer(object):
 
 		destination = os.path.join(config.get('import', 'upload_repository'), image['locator'][0:2], image['locator'][2:4], os.extsep.join((image['locator'], image['format'])))
 		# We take control of the transaction here so we can fail if copying/moving the file fails
-		cursor = self._database_mapper._db.get_cursor()
 		try:
-			self._database_mapper._create_image(cursor, image)
-			# Create destination directory, if it doesn't already exist.  try/except
-			# structure avoids race condition
-			try:
-				os.makedirs(os.path.dirname(destination))
-			except OSError as err:
-				if err.errno == errno.EEXIST:
-					pass
+			with self._database_mapper._db.get_cursor() as cursor:
+				self._database_mapper._create_image(cursor, image)
+				# Create destination directory, if it doesn't already exist.  try/except
+				# structure avoids race condition
+				try:
+					os.makedirs(os.path.dirname(destination))
+				except OSError as err:
+					if err.errno == errno.EEXIST:
+						pass
+					else:
+						raise
+				if self._move:
+					shutil.move(path, destination)
 				else:
-					raise
-			if self._move:
-				shutil.move(path, destination)
-			else:
-				shutil.copy2(path, destination)
-			os.chmod(destination, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
-			self._database_mapper._db.commit(cursor)
-			self._logger.info("Imported image {0}".format(image['locator']))
-			return image
-		except IntegrityError as e:
-			self._database_mapper._db.rollback(cursor)
+					shutil.copy2(path, destination)
+				os.chmod(destination, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
+				self._logger.info("Imported image {0}".format(image['locator']))
+				return image
+		except psycopg2.IntegrityError as e:
 			self._logger.warn("The image at '{0}' already exists in the database".format(path))
-		except:
-			self._database_mapper._db.rollback(cursor)
-			raise
 
 	def _read_local_metadata(self, basename):
 		""" Reads the metadata file for the image and sets defaults """
