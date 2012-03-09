@@ -49,7 +49,28 @@ class DatabaseMapper(object):
 		return image
 
 	@transactional
-	def get_images_for_analysis(self, domain, limit=None, random=False):
+	def get_image_for_analysis(self, domain, image_id):
+		"""
+		Retrieves an image for the domain from the database, used for
+		algorithm analysis, and associated annotations
+		"""
+		pass
+
+	def _get_image_for_analysis(self, cursor, domain, image_id):
+		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source"
+		cursor.execute(sql, (domain, image_id))
+		rows = cursor.fetch_all()
+		images = list()
+		for row in rows:
+			image = image_mapper.map_row(row)
+			sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;";
+			cursor.execute(sql, (row[0], domain, ))
+			image['annotations'] = cursor.fetch_all(annotation_mapper)
+			images.append(image)
+		return images
+
+	@transactional
+	def get_images_for_analysis(self, domain, limit=None, random=False, tags_require=None, tags_exclude=None):
 		"""
 		Retrieves all images for the domain from the database, used for
 		algorithm analysis.  The optional limit limits the number of
@@ -58,28 +79,56 @@ class DatabaseMapper(object):
 		"""
 		pass
 
-	def _get_images_for_analysis(self, cursor, domain, limit, random):
-		sql = "SELECT * FROM (SELECT distinct(image.id), image.locator, image.format FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image ORDER BY "
+	def _get_images_for_analysis(self, cursor, domain, limit, random, tags_require=None, tags_exclude=None):
+		args = []
+		sql = "SELECT image.* FROM image "
+		where = ""
+		# logic roughly from stackoverflow:
+		# http://stackoverflow.com/a/602892/856925
+		if tags_exclude or tags_require:
+			tagcount = 0
+			if tags_require:
+				for tag_require in tags_require:
+					tagstring = "t"+str(tagcount)
+					sql += "INNER JOIN tag "+tagstring+" ON "+tagstring+".image_id = image.id AND "+tagstring+".name=%s "
+					args.append(tag_require)
+					tagcount += 1
+			if tags_exclude:
+				for tag_exclude in tags_exclude:
+					tagstring = "t"+str(tagcount)
+					sql += "LEFT OUTER JOIN tag "+tagstring+" ON "+tagstring+".image_id = image.id AND "+tagstring+".name=%s "
+					where += "AND "+tagstring+" IS NULL "
+					args.append(tag_exclude)
+					tagcount += 1
+		where = "INNER JOIN annotation ON annotation.image_id = image.id AND annotation.domain = %s " + where
+		args.append(domain,)
+		where += " GROUP BY image.id"
 		if random and limit:
-			sql += "random()"
+			where += " ORDER BY random()"
 		else:
-			sql += "image.id"
-
+			where += " ORDER BY image.id"
 		if limit:
-			sql += " LIMIT %s;"
-			cursor.execute(sql, (domain, limit))
-		else:
-			sql += ";"
-			cursor.execute(sql, (domain, ))
+			where += " LIMIT %s"
+			args.append(limit,)
+
+		sql = sql + where
+		cursor.execute(sql, args)
 		rows = cursor.fetch_all()
 		images = list()
 		for row in rows:
 			image = image_mapper.map_row(row)
-			sql = "SELECT model, boundary FROM annotation WHERE image_id = %s AND domain = %s;";
+			sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;";
 			cursor.execute(sql, (row[0], domain, ))
 			image['annotations'] = cursor.fetch_all(annotation_mapper)
 			images.append(image)
 		return images
+
+	@transactional
+	def get_tags_by_image_id(self,image_id):
+		"""
+		Retrieves all tags for a given image
+		"""
+		pass
 
 	def _get_tags_by_image_id(self, cursor, image_id):
 		sql = "SELECT name FROM tag where image_id = %s;"
