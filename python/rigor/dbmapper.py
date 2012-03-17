@@ -143,8 +143,8 @@ class DatabaseMapper(object):
 
 	def _create_image(self, cursor, image):
 		id = self._get_next_id(cursor, 'image')
-		sql = "INSERT INTO image (id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (id, image['locator'], image['hash'], image['stamp'], image['sensor'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], image['location'], image['source']))
+		sql = "INSERT INTO image (id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::point, %s);"
+		cursor.execute(sql, (id, image['locator'], image['hash'], image['stamp'], image['sensor'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], "{0},{1}".format(image['location'][0],image['location'][1]), image['source']))
 		image['id'] = id
 		if image['tags']:
 			self._create_tags(cursor, image['tags'], id)
