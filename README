@@ -90,6 +90,11 @@ Here is an example file with all of the metadata fields used.  Most are optional
         [2, 8],
         [6, 7]
       ]
+      "annotation_tags" : [
+        "blindsight_created",
+        "byhand",
+        "multiple_words"
+      ],
     }
   ]
 }
