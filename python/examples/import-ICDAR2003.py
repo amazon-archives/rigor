@@ -7,11 +7,12 @@ from rigor.importer import Importer
 import os
 from bs4 import BeautifulSoup
 
-kDataPath = '/Users/dave/dev/dave_python_testing/sample_scene/'
+kDataPath = '/Users/dave/dev/dave_python_testing/SceneTrialTrain/'
 kMetadataFile = 'words.xml'
 kBaseMetadata = {'source': 'ICDAR2003',
 	'tags': ["sample", "ICDAR2003", "ICDAR2003.sample", "single_words"]}
 kImporter = Importer(kDataPath)
+kDefaultAnnotationTag = {"annotation_tags" : ["annotated.by.ICDAR2003"]}
 
 def main():
 	with open(os.path.join(kDataPath, 'words.xml')) as source_metadata:
@@ -27,11 +28,12 @@ def main():
 		for roi in image.taggedrectangles.find_all('taggedrectangle'):
 			annotation = {"domain" : "text"}
 			annotation.update({"model" : roi.tag.text})
-			top_left_x = int(roi.attrs['x'])
-			top_left_y = int(roi.attrs['y'])
-			width = int(roi.attrs['width'])
-			height = int(roi.attrs['height'])
-			offset = int(roi.attrs['offset'])
+			annotation.update(kDefaultAnnotationTag)
+			top_left_x = int(float(roi.attrs['x']))
+			top_left_y = int(float(roi.attrs['y']))
+			width = int(float(roi.attrs['width']))
+			height = int(float(roi.attrs['height']))
+			offset = int(float(roi.attrs['offset']))
 			top_left = (top_left_x, top_left_y)
 			top_right = (min(top_left_x+width,resolution_x), top_left_y)
 			bottom_right = (min(top_left_x+width-offset, resolution_x), min(top_left_y+height, resolution_y))

@@ -143,8 +143,11 @@ class DatabaseMapper(object):
 
 	def _create_image(self, cursor, image):
 		id = self._get_next_id(cursor, 'image')
-		sql = "INSERT INTO image (id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::point, %s);"
-		cursor.execute(sql, (id, image['locator'], image['hash'], image['stamp'], image['sensor'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], "{0},{1}".format(image['location'][0],image['location'][1]), image['source']))
+		sql = "INSERT INTO image (id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+		location=None
+		if image['location']:
+			location="({0},{1})".format(image['location'][0],image['location'][1])
+		cursor.execute(sql, (id, image['locator'], image['hash'], image['stamp'], image['sensor'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], location, image['source']))
 		image['id'] = id
 		if image['tags']:
 			self._create_tags(cursor, image['tags'], id)
@@ -212,6 +215,23 @@ class DatabaseMapper(object):
 		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, domain, rank, model) VALUES (%s, %s, %s, %s, %s, %s, %s);"
 		cursor.execute(sql, (id, image_id, annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['rank'], annotation['model']))
 		annotation['id'] = id
+		if annotation['annotation_tags']:
+			self._create_annotation_tags(cursor, annotation['annotation_tags'], id)
+
+	def _create_annotation_tags(self, cursor, annotation_tags, annotation_id):
+		sql = "INSERT INTO annotation_tag (annotation_id, name) VALUES (%s, %s);"
+		cursor.executemany(sql, [(annotation_id, tag) for tag in annotation_tags])
+
+	@transactional
+	def get_annotation_tags_by_annotation_id(self, annotation_id):
+		""" returns all the annotation tags for a given annotation  """
+		pass
+
+	def _get_annotation_tags_by_annotation_id(self, cursor, annotation_id):
+		sql = "SELECT name FROM annotation_tag where annotation_id = %s;"
+		cursor.execute(sql, (annotation_id, ))
+		rows = cursor.fetch_all()
+		return [row[0] for row in rows]
 
 	@transactional
 	def acquire_lock(self, image_id, domain, key, duration):
