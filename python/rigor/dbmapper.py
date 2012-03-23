@@ -49,6 +49,23 @@ class DatabaseMapper(object):
 		return image
 
 	@transactional
+	def get_images_by_source(self, source):
+		"""
+		retireves all the images from a single source
+		"""
+		pass
+
+	def _get_images_by_source(self, cursor, source):
+		sql = "SELECT image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source FROM image WHERE image.source = %s;"
+		cursor.execute(sql, (source,))
+		rows = cursor.fetch_all()
+		images = list()
+		for row in rows:
+			image=image_mapper.map_row(row)
+			images.append(image)
+		return images
+
+	@transactional
 	def get_image_for_analysis(self, domain, image_id):
 		"""
 		Retrieves an image for the domain from the database, used for
