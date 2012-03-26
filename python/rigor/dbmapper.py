@@ -232,7 +232,7 @@ class DatabaseMapper(object):
 		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, domain, rank, model) VALUES (%s, %s, %s, %s, %s, %s, %s);"
 		cursor.execute(sql, (id, image_id, annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['rank'], annotation['model']))
 		annotation['id'] = id
-		if annotation['annotation_tags']:
+		if 'annotation_tags' in annotation and annotation['annotation_tags']:
 			self._create_annotation_tags(cursor, annotation['annotation_tags'], id)
 
 	def _create_annotation_tags(self, cursor, annotation_tags, annotation_id):
