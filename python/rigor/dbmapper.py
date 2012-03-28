@@ -173,6 +173,9 @@ class DatabaseMapper(object):
 				self._create_annotation(cursor, annotation, id)
 
 	def _create_tags(self, cursor, tags, image_id):
+		if hasattr(tags, 'upper'):
+			#tags is a string, change to list
+			tags=(tags,)
 		sql = "INSERT INTO tag (image_id, name) VALUES (%s, %s);"
 		cursor.executemany(sql, [(image_id, tag) for tag in tags])
 
