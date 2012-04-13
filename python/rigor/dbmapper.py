@@ -179,6 +179,13 @@ class DatabaseMapper(object):
 		sql = "INSERT INTO tag (image_id, name) VALUES (%s, %s);"
 		cursor.executemany(sql, [(image_id, tag) for tag in tags])
 
+	def _delete_tags(self, cursor, tags, image_id):
+		if hasattr(tags, 'upper'):
+			#tags is a string, change to list
+			tags=(tags,)
+		sql = "DELETE FROM tag WHERE image_id = %s AND name = %s;"
+		cursor.executemany(sql, [(image_id, tag) for tag in tags])
+
 	@transactional
 	def get_annotation_by_id(self, annotation_id):
 		""" Retrieves the annotation from the database """
