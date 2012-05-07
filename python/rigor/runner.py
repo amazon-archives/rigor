@@ -53,13 +53,14 @@ def _arguments_default(parser):
 def _parse_extended_arguments_default(parser):
 	pass
 
-def parse_arguments(arguments_hook=_arguments_default, parse_extended_arguments_hook=_parse_extended_arguments_default, **kwargs):
+def parse_arguments(arguments_hook=_arguments_default, parse_extended_arguments_hook=_parse_extended_arguments_default, cl_args=None, **kwargs):
 	"""
 	parses command line arguments
 
 	Arguments:
 	arguments_hook -- allows adding additional arguments to the parser
 	parse_extended_arguments_hook -- allows processing to be done on the post-parsing arguments
+	cl_args -- if provided, passed to parser instead of reading from default command line args. This allows for pre-processing of command line args.
 
 	Returns arguments which can be used anywhere within the applicator object
 	"""
@@ -72,7 +73,10 @@ def parse_arguments(arguments_hook=_arguments_default, parse_extended_arguments_
 	parser.add_argument('--tag_require', action='append', dest='tags_require', required=False, help='Tag that must be present on selected images')
 	parser.add_argument('--tag_exclude', action='append', dest='tags_exclude', required=False, help='Tag that must not be present on selected images')
 	arguments_hook(parser)
-	arguments = parser.parse_args()
+	if cl_args:
+		arguments = parser.parse_args(cl_args)
+	else:
+		arguments = parser.parse_args()
 	parse_extended_arguments_hook(arguments)
 	return arguments
 
@@ -101,7 +105,7 @@ def _evaluate_hook_default(results):
 	for result in results:
 		print '\t'.join(str(field) for field in result)
 
-def create_applicator(domain, load_parameters_hook=_load_parameters_default, set_parameters_hook=_set_parameters_default, evaluate_hook=_evaluate_hook_default, **hooks):
+def create_applicator(domain, load_parameters_hook=_load_parameters_default, set_parameters_hook=_set_parameters_default, evaluate_hook=_evaluate_hook_default, cl_args=None, **hooks):
 	"""
 	an applicator object is used to collect a set of images and/or ground truth,
 	run various detection algorithms, and return the results. It is fairly generically defined,
@@ -112,6 +116,7 @@ def create_applicator(domain, load_parameters_hook=_load_parameters_default, set
 	load_parameters_hook -- defines how the parameters for the specfic algorithm are located and loaded
 	set_parameters_hook -- takes the loaded and/or pre-defined parameters and passes them to the algorithm
 	evaluate_hook -- takes the results of the algorithm and gives feedback about the performance of the algorithm
+	cl_args -- if provided, passed to parser instead of reading from default command line args. This allows for pre-processing of command line args.
 
 	Returns applicator object
 
@@ -119,7 +124,7 @@ def create_applicator(domain, load_parameters_hook=_load_parameters_default, set
 		parse_arguments
 		create_algorithm
 	"""
-	args = parse_arguments(**hooks)
+	args = parse_arguments(cl_args=cl_args, **hooks)
 	parameters = load_parameters_hook(args)
 	set_parameters_hook(parameters)
 	algorithm = create_algorithm(domain, **hooks)
