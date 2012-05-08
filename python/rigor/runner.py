@@ -64,7 +64,7 @@ def parse_arguments(arguments_hook=_arguments_default, parse_extended_arguments_
 
 	Returns arguments which can be used anywhere within the applicator object
 	"""
-	parser = argparse.ArgumentParser(description='Runs algorithm on relevant images')
+	parser = argparse.ArgumentParser(description='Runs algorithm on relevant images', conflict_handler='resolve')
 	parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
 	limit = parser.add_mutually_exclusive_group()
 	limit.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
