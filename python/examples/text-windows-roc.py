@@ -5,7 +5,6 @@ generate ROC curves.
 """
 
 import rigor.runner
-import rigor.imageops
 from rigor.database import Database
 from rigor.dbmapper import DatabaseMapper
 

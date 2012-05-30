@@ -33,8 +33,8 @@ def create_algorithm(domain, prefetch_hook=_algorithm_prefetch_default, postfetc
 	"""
 	def _create_algorithm(image):
 		prefetch_hook(image)
-		with rigor.imageops.fetch(image) as image_file:
-			image_data = postfetch_hook(image, rigor.imageops.read(image_file))
+		with rigor.imageops.fetch(image) as image_data:
+			image_data = postfetch_hook(image, image_data)
 			t0 = time.time()
 			result = run_hook(image_data)
 			elapsed = time.time() - t0

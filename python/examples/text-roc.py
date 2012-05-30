@@ -3,12 +3,10 @@ Runs the text detector on images for a range of cascade_threshold values, stores
 """
 
 import rigor.runner
-import rigor.imageops
 from rigor.database import Database
 from rigor.dbmapper import DatabaseMapper
 
 import argparse
-import Image, ImageDraw
 
 from shapely.geometry import Polygon
 
