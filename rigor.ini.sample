@@ -47,10 +47,6 @@ rsync_path = /usr/local/bin/rsync
 # Date format for timestamps in metadata files
 #timestamp_format = %Y-%m-%dT%H:%M:%SZ
 
-[sibyl]
-# Location of sibyl's Python modules
-python_root = SIBYL_PATH
-
 [webapp]
 # Top level URL of the webapp
 base_url = /
