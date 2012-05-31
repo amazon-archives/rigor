@@ -33,17 +33,17 @@ def create_algorithm(domain, prefetch_hook=_algorithm_prefetch_default, postfetc
 	"""
 	def _create_algorithm(image):
 		prefetch_hook(image)
-		with rigor.imageops.fetch(image) as image_data:
-			image_data = postfetch_hook(image, image_data)
-			t0 = time.time()
-			result = run_hook(image_data)
-			elapsed = time.time() - t0
-			annotations = parse_annotations_hook(image['annotations'])
-			if 'annotations' in image:
-				del(image['annotations'])
-			if 'tags' in image:
-				del(image['tags'])
-			return (image, result, annotations, elapsed)
+		image_data = rigor.imageops.fetch(image)
+		image_data = postfetch_hook(image, image_data)
+		t0 = time.time()
+		result = run_hook(image_data)
+		elapsed = time.time() - t0
+		annotations = parse_annotations_hook(image['annotations'])
+		if 'annotations' in image:
+			del(image['annotations'])
+		if 'tags' in image:
+			del(image['tags'])
+		return (image, result, annotations, elapsed)
 	return _create_algorithm
 
 ### runner ###

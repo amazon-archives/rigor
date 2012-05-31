@@ -5,7 +5,7 @@ Various utilities for dealing with images
 from rigor.config import config
 from rigor.dbmapper import DatabaseMapper
 
-import cv
+import cv2
 
 import shutil
 import tempfile
@@ -39,21 +39,21 @@ def fetch(image):
 	"""
 	Given an Image object, this method either fetches it from the repository and
 	copies it to the local temporary directory, or just returns the source,
-	depending on configuration.  It will be read as a cvMat and returned.
+	depending on configuration.  It will be read as a numpy array and returned.
 	"""
 	source = find(image)
 	if config.getboolean('global', 'copy_local'):
-		destination = tempfile.NamedTemporaryFile(prefix='rigor-tmp-', delete=True)
-		shutil.copyfile(source, destination.name)
-		return read(destination.name)
+		with tempfile.NamedTemporaryFile(prefix='rigor-tmp-', delete=True) as destination:
+			shutil.copyfile(source, destination.name)
+			return read(destination.name)
 	else:
 		return read(source)
 
 def read(path):
 	"""
-	Returns a cvMat image from reading a given path
+	Returns a numpy array from reading a given path
 	"""
-	return cv.LoadImageM(path)
+	return cv2.imread(path, -1) # Load image as-is, no color conversion
 
 def destroy_image(database, image):
 	""" Completely Removes an image from the database, along with its tags, annotations, and any anotation tags. Also deletes the image file from disk."""

@@ -9,7 +9,7 @@ from rigor.database import Database
 from rigor.dbmapper import DatabaseMapper
 
 import argparse
-import cv
+import cv2
 
 parameters = {
 	"pyramid_step": 2,
@@ -37,9 +37,9 @@ def main():
 		expected = result[2]
 		image = database_mapper.get_image_by_id(result[0])
 		cv_image = rigor.imageops.fetch(image)
-		cv.PolyLine(cv_image, expected, True, cv.RGB(0, 255, 0))
-		cv.PolyLine(cv_image, detected, True, cv.RGB(255, 255, 0))
-		cv.SaveImage(".".join((str(image["id"]), image["format"])), cv_image)
+		cv2.polylines(cv_image, expected, True, cv2.RGB(0, 255, 0))
+		cv2.polylines(cv_image, detected, True, cv2.RGB(255, 255, 0))
+		cv2.imwrite(".".join((str(image["id"]), image["format"])), cv_image)
 
 if __name__ == '__main__':
 	main()
