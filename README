@@ -15,9 +15,8 @@ When running Rigor, by default all images and annotations in a particular will b
 Prerequisites
 -------------
 - Python v2.7 or higher
-- The Python Imaging Library (PIL)
+- OpenCV 2.x Python bindings
 - psycopg2
-- Sibyl library and Python extension modules built
 - image repository on Ea mounted locally, read-only
 - exiv2 for Python (import only)
 - import repository on Ea mounted locally, read-write (import only)
@@ -27,7 +26,8 @@ Configuration
 Copy the `rigor.ini.sample` file to `.rigor.ini` in your home directory.  Commented-out values reflect the defaults; uncomment and change them to alter settings.
 
 - The `image_repository` is the local path where you have mounted the image repository on Ea
-- The `python_root` points to the built Python extension modules inside Sibyl. (for example, if your sibyl build directory is called "darwin-release", your python root will be something like python_root = /Users/kaolin/dev/sibyl/darwin-release/python/build/lib.macosx-10.7-intel-2.7/ )
+
+You may need to set the `PYTHONPATH` to include the Sibyl Python extensions, OpenCV extensions, and the `python` directory in rigor.
 
 You may also need to set the `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH` to point to your Sibyl and OpenCV libraries.  For example, if you keep everything in `~/dev` on a 64-bit Linux machine:
 
@@ -43,19 +43,7 @@ Use
 ---
 Running
 ~~~~~~~
-To run an algorithm against all images in its domain, use the `run.py` command.  The best way to see the available options is to use the `-h` option, as below:
-
-	python run.py -h
-
-For example, to limit the run to the first 100 images, you could run the following command:
-
-	python run.py -l 100 money ~/dev/sibyl/modules/money/data/config.xml
-
-Another example using the blur detector against all images, with parameters passed in directly:
-
-	python run.py blur '{"window_width": 256}'
-
-If you want more advanced features, have a look in the `examples` folder.
+To run an algorithm, see the examples in Sibyl's `rigor` directory.  This needs to be documented better.
 
 Importing
 ~~~~~~~~~
