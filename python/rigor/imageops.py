@@ -5,7 +5,10 @@ Various utilities for dealing with images
 from rigor.config import config
 from rigor.dbmapper import DatabaseMapper
 
-import cv2
+try:
+	import cv2
+except ImportError:
+	pass
 
 import shutil
 import tempfile
