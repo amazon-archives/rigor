@@ -19,6 +19,7 @@ import uuid
 import json
 import shutil
 import errno
+import imghdr
 
 import psycopg2
 
@@ -73,9 +74,12 @@ class Importer(object):
 		image['hash'] = rigor.hash.hash(path)
 
 		data = rigor.imageops.read(path)
-		image['resolution'] = data.size
-		image['format'] = data.format.lower()
-		image['depth'] = Importer.modes[data.mode]
+		image['resolution'] = data.shape[0:2]
+		image['format'] = imghdr.what(path)
+		if len(data.shape) == 2:
+			image['depth'] = 8
+		else:
+			image['depth'] = data.shape[2]*8
 
 		md = metadata.copy()
 		md.update(self._read_local_metadata(basename))
