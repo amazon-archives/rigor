@@ -74,7 +74,7 @@ class Importer(object):
 		image['hash'] = rigor.hash.hash(path)
 
 		data = rigor.imageops.read(path)
-		image['resolution'] = data.shape[0:2]
+		image['resolution'] = (data.shape[1],data.shape[0])
 		image['format'] = imghdr.what(path)
 		if len(data.shape) == 2:
 			image['depth'] = 8
