@@ -29,16 +29,9 @@ def main():
 			annotation = {"domain" : "text"}
 			annotation.update({"model" : roi.tag.text})
 			annotation.update(kDefaultAnnotationTag)
-			top_left_x = int(float(roi.attrs['x']))
-			top_left_y = int(float(roi.attrs['y']))
-			width = int(float(roi.attrs['width']))
-			height = int(float(roi.attrs['height']))
-			offset = int(float(roi.attrs['offset']))
-			top_left = (top_left_x, top_left_y)
-			top_right = (min(top_left_x+width,resolution_x), top_left_y)
-			bottom_right = (min(top_left_x+width-offset, resolution_x), min(top_left_y+height, resolution_y))
-			bottom_left = (max(top_left_x-offset, 0), min(top_left_y+height, resolution_y))
-			annotation.update({'boundary':[top_left, top_right, bottom_right, bottom_left]})
+			#boundary_coords = rectangle_with_offset(roi)
+			boundary_coords = rectangle_no_offset(roi)
+			annotation.update({'boundary':boundary_coords})
 			annotations.append(annotation)
 		metadata.update({"annotations":annotations})
 		#print(metadata)
@@ -52,7 +45,35 @@ def main():
 		else:
 			print(u'Successfully imported: '+image.name)
 
+def rectangle_with_offset(roi):
+	"""
+	takes a rectangle from ICDAR 2003, and imports it 
+	"""
+	top_left_x = int(float(roi.attrs['x']))
+	top_left_y = int(float(roi.attrs['y']))
+	width = int(float(roi.attrs['width']))
+	height = int(float(roi.attrs['height']))
+	offset = int(float(roi.attrs['offset']))
+	top_left = (top_left_x, top_left_y)
+	top_right = (min(top_left_x+width,resolution_x), top_left_y)
+	bottom_right = (min(top_left_x+width-offset, resolution_x), min(top_left_y+height, resolution_y))
+	bottom_left = (max(top_left_x-offset, 0), min(top_left_y+height, resolution_y))
+	return [top_left, top_right, bottom_right, bottom_left]
 
+def rectangle_no_offset(roi):
+	"""
+	takes a rectangle from ICDAR 2003, and imports it 
+	"""
+	top_left_x = int(float(roi.attrs['x']))
+	top_left_y = int(float(roi.attrs['y']))
+	width = int(float(roi.attrs['width']))
+	height = int(float(roi.attrs['height']))
+	top_left = (top_left_x, top_left_y)
+	top_right = (min(top_left_x+width,resolution_x), top_left_y)
+	bottom_right = (min(top_left_x+width, resolution_x), min(top_left_y+height, resolution_y))
+	bottom_left = (max(top_left_x, 0), min(top_left_y+height, resolution_y))
+	return [top_left, top_right, bottom_right, bottom_left]
+	
 if __name__ == "__main__":
 	main()
 
