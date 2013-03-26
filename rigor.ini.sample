@@ -47,37 +47,6 @@ rsync_path = /usr/local/bin/rsync
 # Date format for timestamps in metadata files
 #timestamp_format = %Y-%m-%dT%H:%M:%SZ
 
-[webapp]
-# Top level URL of the webapp
-base_url = /
-
-# URL of the image directory as served by the webapp
-image_url = /images
-
-# URL of the thumbnail directory as served by the webapp
-thumbnail_url = /thumbnails
-
-# Port for http requests to the server
-http_port = 8080
-
-# Port for https requests to the server
-https_port = 8443
-
-# Path to server certificate file
-ssl_certificate = /home/sweetpea/belegost.crt
-
-# Path to server private key file
-ssl_private_key = /home/sweetpea/belegost.key
-
-# Path to Certificate Authority certificate file
-ssl_ca_certificate = /home/sweetpea/root.crt
-
-# Number of threads to start for serving http requests (per http/https server)
-server_threads = 30
-
-# Amount of time before web client sessions time out (in minutes)
-session_timeout = 1440
-
 [thumbnail]
 # Path to thumbnails
 image_repository = /data/rigor/thumbnails
