@@ -13,6 +13,7 @@ kBaseMetadata = {'source': 'ICDAR2003',
 	'tags': ["sample", "ICDAR2003", "ICDAR2003.sample", "single_words"]}
 kImporter = Importer(kDataPath)
 kDefaultAnnotationTag = {"annotation_tags" : ["annotated.by.ICDAR2003"]}
+kConfidence = 1
 
 def main():
 	with open(os.path.join(kDataPath, 'words.xml')) as source_metadata:
@@ -32,6 +33,7 @@ def main():
 			#boundary_coords = rectangle_with_offset(roi)
 			boundary_coords = rectangle_no_offset(roi)
 			annotation.update({'boundary':boundary_coords})
+			annotation.update({'confidence':kConfidence})
 			annotations.append(annotation)
 		metadata.update({"annotations":annotations})
 		#print(metadata)

@@ -110,7 +110,7 @@ class Importer(object):
 		if 'annotations' in md:
 			for annotation in md['annotations']:
 				a = dict()
-				for key in ('boundary', 'domain', 'model', 'annotation_tags'):
+				for key in ('boundary', 'domain', 'model', 'confidence', 'annotation_tags'):
 					if key in annotation:
 						a[key] = annotation[key]
 					else:

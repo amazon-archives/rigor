@@ -192,12 +192,12 @@ class DatabaseMapper(object):
 		pass
 
 	def _get_annotation_by_id(self, cursor, annotation_id):
-		sql = "SELECT id, stamp, boundary, domain, model FROM annotation WHERE id = %s;"
+		sql = "SELECT id, confidence, stamp, boundary, domain, model FROM annotation WHERE id = %s;"
 		cursor.execute(sql, (annotation_id, ))
 		return cursor.fetch_only_one(annotation_mapper)
 
 	def _get_annotations_by_image_id(self, cursor, image_id):
-		sql = "SELECT id, stamp, boundary, domain, model FROM annotation WHERE image_id = %s;"
+		sql = "SELECT id, confidence, stamp, boundary, domain, model FROM annotation WHERE image_id = %s;"
 		cursor.execute(sql, (image_id, ))
 		return cursor.fetch_all(annotation_mapper)
 
@@ -239,8 +239,8 @@ class DatabaseMapper(object):
 
 	def _create_annotation(self, cursor, annotation, image_id):
 		id = self._get_next_id(cursor, 'annotation')
-		sql = "INSERT INTO annotation (id, image_id, stamp, boundary, domain, model) VALUES (%s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (id, image_id, annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['model']))
+		sql = "INSERT INTO annotation (id, image_id, confidence, stamp, boundary, domain, model) VALUES (%s, %s, %s, %s, %s, %s);"
+		cursor.execute(sql, (id, image_id, annotation['confidence'], annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['model']))
 		annotation['id'] = id
 		if 'annotation_tags' in annotation and annotation['annotation_tags']:
 			self._create_annotation_tags(cursor, annotation['annotation_tags'], id)
