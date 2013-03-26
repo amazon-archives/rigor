@@ -25,25 +25,19 @@ Configuration
 -------------
 Copy the `rigor.ini.sample` file to `.rigor.ini` in your home directory.  Commented-out values reflect the defaults; uncomment and change them to alter settings.
 
-- The `image_repository` is the local path where you have mounted the image repository on Ea
+- The `image_repository` is the local path where you keep your image repository (or mount a remote one locally)
 
-You may need to set the `PYTHONPATH` to include the Sibyl Python extensions, OpenCV extensions, and the `python` directory in rigor.
+You may need to set the `PYTHONPATH` to include the `python` directory in `rigor`, plus any other Python modules such as OpenCV's.
 
-You may also need to set the `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH` to point to your Sibyl and OpenCV libraries.  For example, if you keep everything in `~/dev` on a 64-bit Linux machine:
+You may also need to set the `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH` to point to any compiled algorithms.
 
-	echo 'export LD_LIBRARY_PATH=~/dev/sibyl/build/modules/core:~/dev/sibyl/build/modules/money:~/dev/libs/opencv/current/linux-x86_64/lib' >> ~/.bashrc
-
-or on a 64-bit OS X machine:
-
-	echo 'export DYLD_LIBRARY_PATH=~dev/libs/opencv/current/darwin-x86_64/lib:~/dev/libs/sibyl/current/darwin-x86_64/lib ' >> ~/.bashrc
-
-If you are planning on importing images, you will also want to mount the upload repository on Ea read-write, and set the `upload_repository` parameter to point there.
+If you are planning on importing images, you will also want to set the upload repository read-write, and set the `upload_repository` parameter to point there.
 
 Use
 ---
 Running
 ~~~~~~~
-To run an algorithm, see the examples in Sibyl's `rigor` directory.  This needs to be documented better.
+This needs to be documented better.  See the `python/examples` directory for some basic demonstrations.
 
 Importing
 ~~~~~~~~~
@@ -58,7 +52,7 @@ Here is an example file with all of the metadata fields used.  Most are optional
 .Example `metadata.json` file
 ..............................................
 {
-  "source" : "Guangyu",                    <1>
+  "source" : "Berkeley 2011-02",           <1>
   "sensor" : "HTC Nexus One",              <2>
   "timestamp" : "2011-02-04T21:24:56Z",    <3>
   "location" : [ -122.269241, 37.871104 ], <4>
@@ -103,7 +97,7 @@ Here is a very basic metadata file.  While as much information as possible shoul
 .Example minimal `metadata.json` file
 ..............................................
 {
-  "source" : "Guangyu",
+  "source" : "Berkeley 2011-02",
   "tags" : [
     "training",
     "money",
@@ -115,6 +109,3 @@ Here is a very basic metadata file.  While as much information as possible shoul
 It is also possible to supply a metadata file for each image.  Create a file with the same name as the image, but with `.json` as the extension.  For example, `img00010.jpg` would have an accompanying `img00010.json` metadata file.  Anything in this file will replace anything in the directory-wide `metadata.json` file, which will replace anything automatically extracted from the image.
 
 Once you run the `import.py` command, the images in the directory will be put into the database, and the source images will be either copied or moved to the upload tree.  Periodically, those files will be moved into the official image tree, and they will then be usable.  At the moment, that does mean a discrepency between the contents of the database and the filesystem, but it should be a short-lived difference.  It may be fixed in the future by flagging newly-uploaded data in the database, and preventing it from being used in Rigor trials until it is marked as active.
-
-Some interesting things to note on the dataset are that the relationship between an image and annotation is 1..N. That is to say, for every image there can be multiple annotations. Further, annotations contain data. For example, in the case of the Text - every image's annotations are the ROIs for an image. Annotations share a 1..1 relationship with domains. Domains in rigor presently are 'Text','Money' and so on. Apart from this an image can contain a tag. This relationship again is 1..N. That is, an image can contain many tags. Tags may denote various information not recorded/extracted from exif info of an image. 
-
