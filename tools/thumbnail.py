@@ -6,7 +6,7 @@ Generates thumbnails for images
 Example crontab entry:
 
 PYTHONPATH=/data/rigor/python
-*/5 * * * * /usr/local/bin/python /data/rigor/tools/thumbnail.py
+*/5 * * * * /usr/local/bin/python /data/rigor/tools/thumbnail.py rigor
 """
 
 import rigor.lockfile
@@ -20,7 +20,7 @@ import os
 import subprocess
 import sys
 import errno
-
+import argparse
 
 class Thumbnailer(object):
 	""" Creates thumbnails """
@@ -28,11 +28,11 @@ class Thumbnailer(object):
 	extensions = ('jpg', 'png')
 	""" List of file extensions to thumbnail """
 
-	def __init__(self):
+	def __init__(self, database):
 		self._convert = os.path.abspath(config.get('thumbnail', 'convert_path'))
 		self._lock_file = os.path.abspath(config.get('thumbnail', 'lock_file'))
 		self._size = int(config.get('thumbnail', 'image_size'))
-		self._database = rigor.database.Database()
+		self._database = rigor.database.Database(database)
 		os.umask(002)
 
 	def run(self):
@@ -65,5 +65,8 @@ class Thumbnailer(object):
 
 
 if __name__ == '__main__':
-	s = Thumbnailer()
+	parser = argparse.ArgumentParser(description='Generates thumbnails for images')
+	parser.add_argument('database', help='Database to use')
+	args = parser.parse_args()
+	s = Thumbnailer(args.database)
 	sys.exit(s.run())

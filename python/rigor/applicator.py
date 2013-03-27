@@ -15,19 +15,19 @@ if kMaxWorkers != 1:
 	from multiprocessing.pool import Pool
 
 class BaseApplicator(object):
-	def __init__(self, domain, algorithm, parameters, evaluate_hook):
+	def __init__(self, database, domain, algorithm, parameters, evaluate_hook):
 		self._domain = domain
 		self._algorithm = algorithm
 		self._parameters = parameters
 		self._evaluate_hook = evaluate_hook
 		self._logger = rigor.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
-		self._database = rigor.database.Database()
+		self._database = rigor.database.Database(database)
 		self._database_mapper = DatabaseMapper(self._database)
 
 class Applicator(BaseApplicator):
 	""" Class for running algorithms against test images """
 
-	def __init__(self, domain, algorithm, parameters, evaluate_hook, limit=None, random=False, tags_require=None, tags_exclude=None):
+	def __init__(self, database, domain, algorithm, parameters, evaluate_hook, limit=None, random=False, tags_require=None, tags_exclude=None):
 		"""
 		The domain dictates which images to use as sources.  The algorithm is what
 		gets run against each image.  The limit is an optional maximum number of
@@ -35,7 +35,7 @@ class Applicator(BaseApplicator):
 		order, up to limit; otherwise, images will be pulled in sequential order.
 		Tags are used to control the image selection further.
 		"""
-		BaseApplicator.__init__(self, domain, algorithm, parameters, evaluate_hook)
+		BaseApplicator.__init__(self, database, domain, algorithm, parameters, evaluate_hook)
 		self._limit = limit
 		self._random = random
 		if kMaxWorkers != 1:
@@ -55,12 +55,12 @@ class Applicator(BaseApplicator):
 class SingleApplicator(BaseApplicator):
 	""" Class for running algorithms against single test images """
 
-	def __init__(self, domain, algorithm, parameters, evaluate_hook, image_id):
+	def __init__(self, database, domain, algorithm, parameters, evaluate_hook, image_id):
 		"""
 		If a applicable is supplied, it will control the algorithm to be run.
 		Otherwise, the domain will be used to find an algorithm runner.
 		"""
-		BaseApplicator.__init__(self, domain, algorithm, parameters, evaluate_hook)
+		BaseApplicator.__init__(self, database, domain, algorithm, parameters, evaluate_hook)
 		self._image_id = image_id
 
 	def apply(self):

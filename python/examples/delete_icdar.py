@@ -5,8 +5,13 @@ from rigor.dbmapper import DatabaseMapper
 from rigor.config import config
 
 import psycopg2
+import argparse
 
-gDb = rigor.database.Database()
+parser = argparse.ArgumentParser(description="Tool to delete ICDAR images")
+parser.add_argument("database", help="Database to connect to")
+args = parser.parse_args()
+
+gDb = rigor.database.Database(args.database)
 gDbMapper = DatabaseMapper(gDb)
 
 def main():

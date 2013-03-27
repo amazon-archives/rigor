@@ -5,8 +5,6 @@ generate ROC curves.
 """
 
 import rigor.runner
-from rigor.database import Database
-from rigor.dbmapper import DatabaseMapper
 
 import argparse
 
@@ -35,7 +33,6 @@ def main():
 	parameters["classifier_file"] = args.classifier_file
 	parameters["evaluate_windows"] = True
 	i = rigor.runner.Runner('text', parameters, limit=args.limit, random=args.random)
-	database_mapper = DatabaseMapper(Database())
 	results.write("threshold\timageid\texpected\tdetected\n")
 	for cascade_threshold in (.5,):
 		parameters['cascade_threshold'] = cascade_threshold

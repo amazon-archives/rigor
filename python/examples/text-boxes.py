@@ -28,10 +28,11 @@ def main():
 	parser.add_argument('classifier_file', help='Path to classifier CLF')
 	parser.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
 	parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
+	parser.add_argument('database', help='Database to use')
 	args = parser.parse_args()
 	parameters["classifier_file"] = args.classifier_file
 	i = rigor.runner.Runner('text', parameters, limit=args.limit, random=args.random)
-	database_mapper = DatabaseMapper(Database())
+	database_mapper = DatabaseMapper(Database(args.database))
 	for result in i.run():
 		detected = result[1]
 		expected = result[2]

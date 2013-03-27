@@ -4,11 +4,12 @@ import argparse
 
 def main():
 	parser = argparse.ArgumentParser(description='Imports images and metadata into the database')
+	parser.add_argument('database', help='Database to use')
 	parser.add_argument('directories', metavar='dir', nargs='+', help='Directory containing images and metadata to import')
 	parser.add_argument('-m', '--move', action="store_true", dest='move', default=False, help='Move files into repository instead of copying')
 	args = parser.parse_args()
 	for directory in args.directories:
-		i = rigor.importer.Importer(directory, args.move)
+		i = rigor.importer.Importer(args.database, directory, args.move)
 		i.run()
 
 if __name__ == '__main__':

@@ -31,7 +31,7 @@ class Importer(object):
 
 	modes = {'1': 1, 'L': 8, 'RGB': 24, 'RGBA': 32}
 
-	def __init__(self, directory, move=False):
+	def __init__(self, directory, database, move=False):
 		"""
 		directory is which directory to scan for files; move is whether to move
 		files to the repository, as opposed to just copying them
@@ -40,7 +40,7 @@ class Importer(object):
 		self._logger = rigor.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
 		self._move = move
 		self._metadata = dict()
-		self._database = rigor.database.Database()
+		self._database = rigor.database.Database(database)
 		self._database_mapper = DatabaseMapper(self._database)
 		try:
 			import pyexiv2

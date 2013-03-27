@@ -45,10 +45,10 @@ class RigorCursor(psycopg2.extras.DictCursor):
 class Database(object):
 	""" Container for a database connection pool """
 
-	def __init__(self):
+	def __init__(self, database):
 		register_type(psycopg2.extensions.UNICODE)
 		register_uuid()
-		self._database_name = config.get('database', 'database')
+		self._database_name = database
 		dsn = "dbname='{0}' host='{1}'".format(self._database_name, config.get('database', 'host'))
 		try:
 			ssl = config.getboolean('database', 'ssl')

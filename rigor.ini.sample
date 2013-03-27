@@ -22,9 +22,6 @@ password = PASS
 # Host name for connecting to the database
 host = ea
 
-# Name of the database
-#database = rigor
-
 # Whether to use SSL for the database connection
 #ssl = yes
 

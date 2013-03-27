@@ -15,6 +15,7 @@ from functools import partial
 from multiprocessing.pool import Pool
 import json
 
+kDatabase = 'rigor'
 kDomain = 'money'
 kLimit = None
 
@@ -67,7 +68,7 @@ def get_parameters():
 def main():
 	rigor.domain.money.init(parameters)
 	logger = rigor.logger.getLogger(__file__)
-	database_mapper = DatabaseMapper(Database())
+	database_mapper = DatabaseMapper(Database(kDatabase))
 	pool = Pool(int(config.get('global', 'max_workers')))
 	logger.debug('Fetching image IDs from database')
 	images = database_mapper.get_images_for_analysis(kDomain, kLimit, False)
