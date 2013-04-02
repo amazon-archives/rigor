@@ -16,9 +16,10 @@ Prerequisites
 - Python v2.7 or higher
 - OpenCV 2.x Python bindings
 - psycopg2
-- image repository on Ea mounted locally, read-only
+- PostgreSQL 9.x
+- image repository mounted locally, read-only
 - exiv2 for Python (import only)
-- import repository on Ea mounted locally, read-write (import only)
+- import repository mounted locally, read-write (import only)
 
 Configuration
 -------------
@@ -37,6 +38,8 @@ Use
 Running
 ~~~~~~~
 This needs to be documented better.  See the `python/examples` directory for some basic demonstrations.
+
+You can create the initial database using `tools/dbtool.py`.  Run it with `-h` for help.
 
 Importing
 ~~~~~~~~~
