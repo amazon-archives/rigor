@@ -1,5 +1,6 @@
 from rigor.config import config
 
+import functools
 import psycopg2
 import psycopg2.extensions
 import psycopg2.extras
@@ -14,13 +15,15 @@ from contextlib import contextmanager
 
 import ConfigParser
 
+kTemplateDatabase = 'template1'
+
 class RigorCursor(psycopg2.extras.DictCursor):
 	""" Normal DictCursor with row mapping and enhanced fetch capabilities """
 
 	def fetch_all(self, row_mapper=None):
 		""" Fetches all rows, applying row mapper if any """
 		if row_mapper:
-			return [row_mapper.map_row(row) for row in self.fetchall()]
+			return (row_mapper.map_row(row) for row in self.fetchall())
 		else:
 			return self.fetchall()
 
@@ -49,7 +52,27 @@ class Database(object):
 		register_type(psycopg2.extensions.UNICODE)
 		register_uuid()
 		self._database_name = database
-		dsn = "dbname='{0}' host='{1}'".format(self._database_name, config.get('database', 'host'))
+		dsn = Database.build_dsn(database)
+		self._pool = ThreadedConnectionPool(config.get('database', 'min_database_connections'), config.get('database', 'max_database_connections'), dsn)
+
+	def template(function):
+		"""
+		Executes the SQL in the function while connected to the template database
+		"""
+		def _execute(*args, **kwargs):
+			dsn = Database.build_dsn(kTemplateDatabase)
+			connection = psycopg2.connect(dsn)
+			try:
+				connection.autocommit = True
+				cursor = connection.cursor()
+				cursor.execute(function(*args, **kwargs))
+			finally:
+				connection.close()
+		return _execute
+
+	@staticmethod
+	def build_dsn(database):
+		dsn = "dbname='{0}' host='{1}'".format(database, config.get('database', 'host'))
 		try:
 			ssl = config.getboolean('database', 'ssl')
 			if ssl:
@@ -66,7 +89,22 @@ class Database(object):
 			dsn += " password='{0}'".format(password)
 		except ConfigParser.Error:
 			pass
-		self._pool = ThreadedConnectionPool(config.get('database', 'min_database_connections'), config.get('database', 'max_database_connections'), dsn)
+		return dsn
+
+	@staticmethod
+	@template
+	def create(name):
+		return "CREATE DATABASE {0};".format(name)
+
+	@staticmethod
+	@template
+	def drop(name):
+		return "DROP DATABASE {0};".format(name)
+
+	@staticmethod
+	@template
+	def clone(source, destination):
+		return "CREATE DATABASE {0} WITH TEMPLATE {1};".format(destination, source)
 
 	@contextmanager
 	def get_cursor(self, commit=True):
@@ -134,7 +172,9 @@ class RowMapper(object):
 		return new
 
 def transactional(function):
-	""" Runs a function wrapped in a single transaction """
+	"""
+	Runs a function wrapped in a single transaction.
+	"""
 	def _execute(self, *args, **kwargs):
 		real_function_name = "_" + function.__name__
 		real_function = getattr(self, real_function_name)
@@ -158,4 +198,4 @@ def polygon_tuple_adapter(polygon):
 	""" Returns a string formatted in a way that PostgreSQL recognizes as a polygon, given a sequence of pairs """
 	if polygon is None:
 		return None
-	return str(tuple([tuple(point) for point in polygon]))
+	return str(tuple(tuple(point) for point in polygon))

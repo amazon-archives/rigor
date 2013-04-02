@@ -1,4 +1,4 @@
-from rigor.database import transactional, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
+from rigor.database import transactional, Database, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
 
 import uuid
 from datetime import datetime, timedelta
@@ -151,7 +151,7 @@ class DatabaseMapper(object):
 		sql = "SELECT name FROM tag where image_id = %s;"
 		cursor.execute(sql, (image_id, ))
 		rows = cursor.fetch_all()
-		return [row[0] for row in rows]
+		return (row[0] for row in rows)
 
 	@transactional
 	def create_image(self, image):
@@ -177,14 +177,14 @@ class DatabaseMapper(object):
 			#tags is a string, change to list
 			tags=(tags,)
 		sql = "INSERT INTO tag (image_id, name) VALUES (%s, %s);"
-		cursor.executemany(sql, [(image_id, tag) for tag in tags])
+		cursor.executemany(sql, ((image_id, tag) for tag in tags))
 
 	def _delete_tags(self, cursor, tags, image_id):
 		if hasattr(tags, 'upper'):
 			#tags is a string, change to list
 			tags=(tags,)
 		sql = "DELETE FROM tag WHERE image_id = %s AND name = %s;"
-		cursor.executemany(sql, [(image_id, tag) for tag in tags])
+		cursor.executemany(sql, ((image_id, tag) for tag in tags))
 
 	@transactional
 	def get_annotation_by_id(self, annotation_id):
@@ -247,7 +247,7 @@ class DatabaseMapper(object):
 
 	def _create_annotation_tags(self, cursor, annotation_tags, annotation_id):
 		sql = "INSERT INTO annotation_tag (annotation_id, name) VALUES (%s, %s);"
-		cursor.executemany(sql, [(annotation_id, tag) for tag in annotation_tags])
+		cursor.executemany(sql, ((annotation_id, tag) for tag in annotation_tags))
 
 	@transactional
 	def get_annotation_tags_by_annotation_id(self, annotation_id):
@@ -258,7 +258,54 @@ class DatabaseMapper(object):
 		sql = "SELECT name FROM annotation_tag where annotation_id = %s;"
 		cursor.execute(sql, (annotation_id, ))
 		rows = cursor.fetch_all()
-		return [row[0] for row in rows]
+		return (row[0] for row in rows)
+
+	@transactional
+	def patch(self, patch, patch_level):
+		"""
+		Patches the database by running all commands in the patch file (a file-like
+		object or string containing the file's contents), then updating the patch
+		table to reflect the changes.  NOTE: the patch file should not contain any
+		transaction begin or end commands.
+		"""
+
+	def _patch(self, cursor, patch, patch_level):
+		if hasattr(patch, 'read'):
+			patch = patch.read()
+		cursor.execute(patch)
+		sql = "UPDATE meta SET value=%s WHERE key=%s;"
+		cursor.execute(sql, (patch_level, 'patch_level'))
+		if cursor.rowcount == 0:
+			raise psycopg2.IntegrityError("Could not update patch level")
+
+	@transactional
+	def get_patch_level(self):
+		""" Gets the database's current patch level """
+
+	def _get_patch_level(self, cursor):
+		sql = "SELECT value FROM meta WHERE key='patch_level';"
+		cursor.execute(sql)
+		row = cursor.fetch_only_one()
+		return int(row[0])
+
+	@transactional
+	def get_destroy_lock(self):
+		""" Gets whether the database can be destroyed from the command line """
+
+	def _get_destroy_lock(self, cursor):
+		sql = "SELECT 1 FROM meta WHERE key=%s AND value=%s::text;"
+		cursor.execute(sql, ('destroy_lock', True))
+		return cursor.rowcount != 0
+
+	@transactional
+	def set_destroy_lock(self, locked):
+		""" Sets whether the database can be destroyed from the command line """
+
+	def _set_destroy_lock(self, cursor, locked):
+		sql = "UPDATE meta SET value = %s WHERE key = %s;"
+		cursor.execute(sql, (locked, 'destroy_lock'))
+		sql = "INSERT INTO meta (key, value) SELECT %s, %s WHERE NOT EXISTS (SELECT 1 FROM meta WHERE key=%s);"
+		cursor.execute(sql, ('destroy_lock', locked, 'destroy_lock'))
 
 	@transactional
 	def acquire_lock(self, image_id, domain, key, duration):
