@@ -17,7 +17,7 @@ _kTemplateDatabase = 'template1'
 
 def patch(mapper, patch_dir, start_level, stop_level, dry_run, quiet):
 	if not os.path.exists(patch_dir):
-		sys.stderr.write("Can't find patch directory at {0}\n".format(patch_dir))
+		sys.stderr.write("Error: can't find patch directory at {0}\n".format(patch_dir))
 		sys.exit(1)
 	patch_files = os.listdir(patch_dir)
 	patch_files = sorted(patch for patch in patch_files if _kPatchPattern.match(patch))
@@ -77,12 +77,28 @@ def cmd_destroy(args):
 	database = Database(args.database)
 	mapper = DatabaseMapper(database)
 	if mapper.get_destroy_lock():
-		sys.stderr.write("Database is locked")
+		sys.stderr.write("Error: database is locked\n")
 		sys.exit(2)
 	mapper = None
 	database = None
 	if not args.dry_run:
 		Database.drop(args.database)
+
+def cmd_lock(args):
+	if not args.quiet:
+		print("Locking database {0}".format(args.database))
+	if not args.dry_run:
+		database = Database(args.database)
+		mapper = DatabaseMapper(database)
+		mapper.set_destroy_lock(True)
+
+def cmd_unlock(args):
+	if not args.quiet:
+		print("Unlocking database {0}".format(args.database))
+	if not args.dry_run:
+		database = Database(args.database)
+		mapper = DatabaseMapper(database)
+		mapper.set_destroy_lock(False)
 
 parser = argparse.ArgumentParser(description="Tool for working with Rigor databases")
 dry_run_quiet = parser.add_mutually_exclusive_group()
@@ -114,6 +130,16 @@ parser_patch.set_defaults(func=cmd_patch)
 parser_destroy = subparsers.add_parser("destroy", help="Delete a database")
 parser_destroy.add_argument("database", help="Name of the database to delete")
 parser_destroy.set_defaults(func=cmd_destroy)
+
+# Lock
+parser_lock = subparsers.add_parser("lock", help="Lock a database to prevent deletion")
+parser_lock.add_argument("database", help="Name of the database to lock")
+parser_lock.set_defaults(func=cmd_lock)
+
+# Unlock
+parser_unlock = subparsers.add_parser("unlock", help="Unlocks a delete-locked database")
+parser_unlock.add_argument("database", help="Name of the database to unlock")
+parser_unlock.set_defaults(func=cmd_unlock)
 
 args = parser.parse_args()
 args.func(args)
