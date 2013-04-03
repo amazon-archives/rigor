@@ -9,7 +9,7 @@ Images, once imported, are stored in a file tree using a unique identifier.  A s
 
 Each image can also have a number of annotations.  Annotating an image defines the ground truth in a particular domain, such as whether the image is blurry, where text is located, or what denomination bill is shown.  A single image can have annotations in different domains, and it can even have multiple annotations in the same domain (generally used when an annotation contains a boundary, and multiple ROIs exist).
 
-When running Rigor, by default all images and annotations in a particular will be run against the algorithm.  This can be limited to a smaller sample using the command-line tools, or much more extensively tweaked by writing a standalone Python application which includes the Rigor libraries.
+When running Rigor, by default all images and annotations in a particular domain will be run against the algorithm.  This can be limited to a smaller sample using the command-line tools, or much more extensively tweaked by writing a standalone Python application which includes the Rigor libraries.
 
 Prerequisites
 -------------
