@@ -65,6 +65,7 @@ def parse_arguments(arguments_hook=_arguments_default, parse_extended_arguments_
 	Returns arguments which can be used anywhere within the applicator object
 	"""
 	parser = argparse.ArgumentParser(description='Runs algorithm on relevant images', conflict_handler='resolve')
+	parser.add_argument('-d', '--database', required=True, help='Database to connect to') # FIXME should be positional
 	parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
 	limit = parser.add_mutually_exclusive_group()
 	limit.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
@@ -105,14 +106,13 @@ def _evaluate_hook_default(results):
 	for result in results:
 		print '\t'.join(str(field) for field in result)
 
-def create_applicator(database, domain, load_parameters_hook=_load_parameters_default, set_parameters_hook=_set_parameters_default, evaluate_hook=_evaluate_hook_default, cl_args=None, **hooks):
+def create_applicator(domain, load_parameters_hook=_load_parameters_default, set_parameters_hook=_set_parameters_default, evaluate_hook=_evaluate_hook_default, cl_args=None, **hooks):
 	"""
 	an applicator object is used to collect a set of images and/or ground truth,
 	run various detection algorithms, and return the results. It is fairly generically defined,
 	with much of the detail described in the various user-defined hooks.
 
 	Arguments:
-	database -- the database to connect to
 	domain -- the rigor domain used for whatever algorithm is being tested; used for finding images and annotations
 	load_parameters_hook -- defines how the parameters for the specfic algorithm are located and loaded
 	set_parameters_hook -- takes the loaded and/or pre-defined parameters and passes them to the algorithm
@@ -130,7 +130,7 @@ def create_applicator(database, domain, load_parameters_hook=_load_parameters_de
 	set_parameters_hook(parameters)
 	algorithm = create_algorithm(domain, **hooks)
 	if args.image_id:
-		applicator = rigor.applicator.SingleApplicator(database, domain, algorithm, parameters, evaluate_hook, args.image_id)
+		applicator = rigor.applicator.SingleApplicator(args.database, domain, algorithm, parameters, evaluate_hook, args.image_id)
 	else:
-		applicator = rigor.applicator.Applicator(database, domain, algorithm, parameters, evaluate_hook, limit=args.limit, random=args.random, tags_require=args.tags_require, tags_exclude=args.tags_exclude)
+		applicator = rigor.applicator.Applicator(args.database, domain, algorithm, parameters, evaluate_hook, limit=args.limit, random=args.random, tags_require=args.tags_require, tags_exclude=args.tags_exclude)
 	return applicator
