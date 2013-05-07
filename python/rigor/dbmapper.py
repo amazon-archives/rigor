@@ -20,6 +20,7 @@ kAnnotationMapper = RowMapper(field_transforms={'boundary':polygon_transform})
 
 class DatabaseMapper(object):
 	""" Reads and write Images to database """
+	# pylint: disable=R0201
 
 	def __init__(self, database):
 		self._db = database

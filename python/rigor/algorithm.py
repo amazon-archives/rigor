@@ -14,7 +14,7 @@ class Algorithm(object):
 	def __init__(self):
 		self._logger = rigor.logger.get_logger('.'.join((__name__, self.__class__.__name__)))
 
-	def prefetch(self, image):
+	def prefetch(self, image): # pylint: disable=R0201
 		"""
 		This method can be overridden to alter or use image metadata before the
 		image has been fetched from the data store.
@@ -23,7 +23,7 @@ class Algorithm(object):
 		"""
 		return image
 
-	def postfetch(self, _image, image_data):
+	def postfetch(self, _image, image_data): # pylint: disable=R0201
 		"""
 		This method can be overridden to alter or use the image's data or metadata
 		once it has been fetched from the data store, but before the algorithm
@@ -41,7 +41,7 @@ class Algorithm(object):
 		"""
 		pass
 
-	def parse_annotations(self, annotations):
+	def parse_annotations(self, annotations): # pylint: disable=R0201
 		"""
 		This method can be used to change the format of annotations returned from the database to something easier to analyze in later steps.
 
