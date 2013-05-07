@@ -1,13 +1,12 @@
+""" Database abstraction for Rigor """
+
 from rigor.config import config
 
-import functools
 import psycopg2
 import psycopg2.extensions
 import psycopg2.extras
 
 from psycopg2.extensions import register_type
-from psycopg2.extensions import register_adapter
-from psycopg2.extensions import adapt
 from psycopg2.extras import register_uuid
 from psycopg2.pool import ThreadedConnectionPool
 
@@ -45,6 +44,21 @@ class RigorCursor(psycopg2.extras.DictCursor):
 			raise psycopg2.IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
 		return self.fetch_one(row_mapper)
 
+def template(function):
+	"""
+	Executes the SQL in the function while connected to the template database
+	"""
+	def _execute(*args, **kwargs):
+		dsn = Database.build_dsn(kTemplateDatabase)
+		connection = psycopg2.connect(dsn)
+		try:
+			connection.autocommit = True
+			cursor = connection.cursor()
+			cursor.execute(function(*args, **kwargs))
+		finally:
+			connection.close()
+	return _execute
+
 class Database(object):
 	""" Container for a database connection pool """
 
@@ -55,23 +69,9 @@ class Database(object):
 		dsn = Database.build_dsn(database)
 		self._pool = ThreadedConnectionPool(config.get('database', 'min_database_connections'), config.get('database', 'max_database_connections'), dsn)
 
-	def template(function):
-		"""
-		Executes the SQL in the function while connected to the template database
-		"""
-		def _execute(*args, **kwargs):
-			dsn = Database.build_dsn(kTemplateDatabase)
-			connection = psycopg2.connect(dsn)
-			try:
-				connection.autocommit = True
-				cursor = connection.cursor()
-				cursor.execute(function(*args, **kwargs))
-			finally:
-				connection.close()
-		return _execute
-
 	@staticmethod
 	def build_dsn(database):
+		""" Builds the database connection string from config values """
 		dsn = "dbname='{0}' host='{1}'".format(database, config.get('database', 'host'))
 		try:
 			ssl = config.getboolean('database', 'ssl')
@@ -94,16 +94,22 @@ class Database(object):
 	@staticmethod
 	@template
 	def create(name):
+		""" Creates a new database with the given name """
 		return "CREATE DATABASE {0};".format(name)
 
 	@staticmethod
 	@template
 	def drop(name):
+		""" Drops the database with the given name """
 		return "DROP DATABASE {0};".format(name)
 
 	@staticmethod
 	@template
 	def clone(source, destination):
+		"""
+		Copies the source database to a new destination database.  This may fail if
+		the source database is in active use.
+		"""
 		return "CREATE DATABASE {0} WITH TEMPLATE {1};".format(destination, source)
 
 	@contextmanager
@@ -178,7 +184,7 @@ def transactional(function):
 	def _execute(self, *args, **kwargs):
 		real_function_name = "_" + function.__name__
 		real_function = getattr(self, real_function_name)
-		with self._db.get_cursor() as cursor:
+		with self._db.get_cursor() as cursor: # pylint: disable=W0212
 			return real_function(cursor, *args, **kwargs)
 	return _execute
 

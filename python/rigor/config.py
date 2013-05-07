@@ -6,7 +6,7 @@ import multiprocessing
 
 kConfigurationPath = os.path.join(os.environ['HOME'], '.rigor.ini')
 
-_defaults = dict(
+__defaults__ = dict(
 		max_workers = multiprocessing.cpu_count(),
 		copy_local = 'yes',
 		ssl = 'yes',
@@ -15,5 +15,5 @@ _defaults = dict(
 		metadata_file = 'metadata.json',
 		timestamp_format = '%Y-%m-%dT%H:%M:%SZ'
 	)
-config = RawConfigParser(_defaults)
+config = RawConfigParser(__defaults__) # pylint: disable=C0103
 config.read(kConfigurationPath)
