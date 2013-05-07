@@ -30,7 +30,7 @@ class Thumbnailer(object):
 
 	def __init__(self, database):
 		self._convert = os.path.abspath(config.get('thumbnail', 'convert_path'))
-		self._lock_file = os.path.abspath(config.get('thumbnail', 'lock_file'))
+		self._lock_file = os.path.abspath(config.get('thumbnail', 'lock_file') + '-' + database)
 		self._size = int(config.get('thumbnail', 'image_size'))
 		self._database = rigor.database.Database(database)
 		os.umask(002)
