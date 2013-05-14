@@ -83,15 +83,12 @@ class DatabaseMapper(object):
 	def _get_image_for_analysis(self, cursor, domain, image_id):
 		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source"
 		cursor.execute(sql, (domain, image_id))
-		rows = cursor.fetch_all()
-		images = list()
-		for row in rows:
-			image = kImageMapper.map_row(row)
-			sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;"
-			cursor.execute(sql, (row[0], domain, ))
-			image['annotations'] = cursor.fetch_all(kAnnotationMapper)
-			images.append(image)
-		return images
+		row = cursor.fetch_only_one()
+		image = kImageMapper.map_row(row)
+		sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;"
+		cursor.execute(sql, (row[0], domain, ))
+		image['annotations'] = cursor.fetch_all(kAnnotationMapper)
+		return image
 
 	@transactional
 	def get_images_for_analysis(self, domain, limit=None, random=False, tags_require=None, tags_exclude=None):

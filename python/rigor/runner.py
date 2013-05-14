@@ -9,6 +9,7 @@ import rigor.database
 import rigor.dbmapper
 
 import abc
+import sys
 import json
 import argparse
 
@@ -95,10 +96,21 @@ class BaseRunner(object):
 		"""
 		pass
 
+	def evaluate(self, results):
+		"""
+		This takes the final output of all applications of the algorithm and
+		formats it into a useful report.  It can optionally return results (that's
+		up to the implementer), but its main function should be to create reports
+		and format output.  The default implementation simply dumps the results to
+		stdout in json format.
+		"""
+		json.dump(results, sys.stdout)
+		return results # why not?
+
 class Runner(BaseRunner):
 	""" Class for running algorithms against test images """
 
-	def __init__(self, algorithm, domain, arguments=None, limit=None, random=False, tags_require=None, tags_exclude=None):
+	def __init__(self, algorithm, domain, arguments=None):
 		"""
 		The domain dictates which images to use as sources. The limit is an
 		optional maximum number of images to use as sources.  If random, images
@@ -108,22 +120,18 @@ class Runner(BaseRunner):
 		"""
 		BaseRunner.__init__(self, algorithm, arguments)
 		self._domain = domain
-		self._limit = limit
-		self._random = random
 		if kMaxWorkers > 1:
 			self._pool = Pool(int(config.get('global', 'max_workers')))
-		self._tags_require = tags_require
-		self._tags_exclude = tags_exclude
 
 	def run(self):
 		""" Runs the algorithm on the images matching the supplied arguments """
 		self._logger.debug('Fetching image IDs from database')
-		images = self._database_mapper.get_images_for_analysis(self._domain, self._limit, self._random, self._tags_require, self._tags_exclude)
+		images = self._database_mapper.get_images_for_analysis(self._domain, self._arguments.limit, self._arguments.random, self._arguments.tags_require, self._arguments.tags_exclude)
 		self._logger.debug('Processing {0} images'.format(len(images)))
 		if kMaxWorkers > 1:
-			return self._pool.map(self._algorithm.run, images)
+			return self.evaluate(self._pool.map(self._algorithm.apply, images))
 		else:
-			return map(self._algorithm.run, images)
+			return self.evaluate(map(self._algorithm.apply, images))
 
 class SingleRunner(BaseRunner):
 	""" Class for running algorithms against a single test image """
@@ -142,4 +150,4 @@ class SingleRunner(BaseRunner):
 		""" Runs the algorithm on the image and returns the result """
 		image = self._database_mapper.get_image_for_analysis(self._domain, self._image_id)
 		self._logger.debug('Processing image ID {}'.format(self._image_id))
-		return self._algorithm.run(image)
+		return self.evaluate([self._algorithm.apply(image)])
