@@ -1,19 +1,26 @@
-from rigor.database import transactional, Database, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
+""" Mappings between logical operations and database queries """
+
+from rigor.database import transactional, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
 
 import uuid
 from datetime import datetime, timedelta
 import psycopg2
 
-def resolution_transform(value, column_name, row):
+def resolution_transform(value, _column_name, row):
+	"""
+	Turns the x_resolution and y_resolution database columns into a single tuple
+	for use as a resolution
+	"""
 	if value is None:
 		return None
 	return (row['x_resolution'], row['y_resolution'])
 
-image_mapper = RowMapper(field_mappings={'x_resolution': 'resolution', 'y_resolution': None}, field_transforms={'locator':uuid_transform, 'resolution':resolution_transform})
-annotation_mapper = RowMapper(field_transforms={'boundary':polygon_transform})
+kImageMapper = RowMapper(field_mappings={'x_resolution': 'resolution', 'y_resolution': None}, field_transforms={'locator':uuid_transform, 'resolution':resolution_transform})
+kAnnotationMapper = RowMapper(field_transforms={'boundary':polygon_transform})
 
 class DatabaseMapper(object):
 	""" Reads and write Images to database """
+	# pylint: disable=R0201
 
 	def __init__(self, database):
 		self._db = database
@@ -34,7 +41,7 @@ class DatabaseMapper(object):
 	def _get_only_image_by_id(self, cursor, image_id):
 		sql = "SELECT id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source FROM image WHERE id = %s;"
 		cursor.execute(sql, (image_id, ))
-		image = cursor.fetch_only_one(image_mapper)
+		image = cursor.fetch_only_one(kImageMapper)
 		return image
 
 	@transactional
@@ -61,7 +68,7 @@ class DatabaseMapper(object):
 		rows = cursor.fetch_all()
 		images = list()
 		for row in rows:
-			image=image_mapper.map_row(row)
+			image = kImageMapper.map_row(row)
 			images.append(image)
 		return images
 
@@ -76,15 +83,12 @@ class DatabaseMapper(object):
 	def _get_image_for_analysis(self, cursor, domain, image_id):
 		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.sensor, image.x_resolution, image.y_resolution, image.format, image.depth, image.source"
 		cursor.execute(sql, (domain, image_id))
-		rows = cursor.fetch_all()
-		images = list()
-		for row in rows:
-			image = image_mapper.map_row(row)
-			sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;";
-			cursor.execute(sql, (row[0], domain, ))
-			image['annotations'] = cursor.fetch_all(annotation_mapper)
-			images.append(image)
-		return images
+		row = cursor.fetch_only_one()
+		image = kImageMapper.map_row(row)
+		sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;"
+		cursor.execute(sql, (row[0], domain, ))
+		image['annotations'] = cursor.fetch_all(kAnnotationMapper)
+		return image
 
 	@transactional
 	def get_images_for_analysis(self, domain, limit=None, random=False, tags_require=None, tags_exclude=None):
@@ -96,7 +100,7 @@ class DatabaseMapper(object):
 		"""
 		pass
 
-	def _get_images_for_analysis(self, cursor, domain, limit, random, tags_require=None, tags_exclude=None):
+	def _get_images_for_analysis(self, cursor, domain, limit, random, tags_require=None, tags_exclude=None): # pylint: disable=R0914
 		args = []
 		sql = "SELECT image.* FROM image "
 		where = ""
@@ -133,15 +137,15 @@ class DatabaseMapper(object):
 		rows = cursor.fetch_all()
 		images = list()
 		for row in rows:
-			image = image_mapper.map_row(row)
-			sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;";
+			image = kImageMapper.map_row(row)
+			sql = "SELECT id, model, boundary FROM annotation WHERE image_id = %s AND domain = %s;"
 			cursor.execute(sql, (row[0], domain, ))
-			image['annotations'] = cursor.fetch_all(annotation_mapper)
+			image['annotations'] = cursor.fetch_all(kAnnotationMapper)
 			images.append(image)
 		return images
 
 	@transactional
-	def get_tags_by_image_id(self,image_id):
+	def get_tags_by_image_id(self, image_id):
 		"""
 		Retrieves all tags for a given image
 		"""
@@ -159,30 +163,30 @@ class DatabaseMapper(object):
 		pass
 
 	def _create_image(self, cursor, image):
-		id = self._get_next_id(cursor, 'image')
+		image_id = self._get_next_id(cursor, 'image')
 		sql = "INSERT INTO image (id, locator, hash, stamp, sensor, x_resolution, y_resolution, format, depth, location, source) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-		location=None
+		location = None
 		if image['location']:
-			location="({0},{1})".format(image['location'][0],image['location'][1])
-		cursor.execute(sql, (id, image['locator'], image['hash'], image['stamp'], image['sensor'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], location, image['source']))
-		image['id'] = id
+			location = "({0},{1})".format(image['location'][0], image['location'][1])
+		cursor.execute(sql, (image_id, image['locator'], image['hash'], image['stamp'], image['sensor'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], location, image['source']))
+		image['id'] = image_id
 		if image['tags']:
-			self._create_tags(cursor, image['tags'], id)
+			self._create_tags(cursor, image['tags'], image_id)
 		if image['annotations']:
 			for annotation in image['annotations']:
-				self._create_annotation(cursor, annotation, id)
+				self._create_annotation(cursor, annotation, image_id)
 
 	def _create_tags(self, cursor, tags, image_id):
 		if hasattr(tags, 'upper'):
-			#tags is a string, change to list
-			tags=(tags,)
+			# tags is a string, change to list
+			tags = (tags,)
 		sql = "INSERT INTO tag (image_id, name) VALUES (%s, %s);"
 		cursor.executemany(sql, ((image_id, tag) for tag in tags))
 
 	def _delete_tags(self, cursor, tags, image_id):
 		if hasattr(tags, 'upper'):
 			#tags is a string, change to list
-			tags=(tags,)
+			tags = (tags, )
 		sql = "DELETE FROM tag WHERE image_id = %s AND name = %s;"
 		cursor.executemany(sql, ((image_id, tag) for tag in tags))
 
@@ -194,12 +198,12 @@ class DatabaseMapper(object):
 	def _get_annotation_by_id(self, cursor, annotation_id):
 		sql = "SELECT id, confidence, stamp, boundary, domain, model FROM annotation WHERE id = %s;"
 		cursor.execute(sql, (annotation_id, ))
-		return cursor.fetch_only_one(annotation_mapper)
+		return cursor.fetch_only_one(kAnnotationMapper)
 
 	def _get_annotations_by_image_id(self, cursor, image_id):
 		sql = "SELECT id, confidence, stamp, boundary, domain, model FROM annotation WHERE image_id = %s;"
 		cursor.execute(sql, (image_id, ))
-		return cursor.fetch_all(annotation_mapper)
+		return cursor.fetch_all(kAnnotationMapper)
 
 	@transactional
 	def update_annotation_model(self, annotation_id, model):
@@ -238,12 +242,12 @@ class DatabaseMapper(object):
 		pass
 
 	def _create_annotation(self, cursor, annotation, image_id):
-		id = self._get_next_id(cursor, 'annotation')
+		image_id = self._get_next_id(cursor, 'annotation')
 		sql = "INSERT INTO annotation (id, image_id, confidence, stamp, boundary, domain, model) VALUES (%s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (id, image_id, annotation['confidence'], annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['model']))
-		annotation['id'] = id
+		cursor.execute(sql, (image_id, image_id, annotation['confidence'], annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['model']))
+		annotation['id'] = image_id
 		if 'annotation_tags' in annotation and annotation['annotation_tags']:
-			self._create_annotation_tags(cursor, annotation['annotation_tags'], id)
+			self._create_annotation_tags(cursor, annotation['annotation_tags'], image_id)
 
 	def _create_annotation_tags(self, cursor, annotation_tags, annotation_id):
 		sql = "INSERT INTO annotation_tag (annotation_id, name) VALUES (%s, %s);"

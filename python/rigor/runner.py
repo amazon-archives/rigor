@@ -1,136 +1,153 @@
-import rigor.applicator
-import rigor.imageops
+"""
+Runs an algorithm across a set of images.  Result is a report containing image
+ID, detected model, expected model, and elapsed time
+"""
+from rigor.config import config
 
-import argparse
+import rigor.logger
+import rigor.database
+import rigor.dbmapper
+
+import abc
+import sys
 import json
-import time
+import argparse
 
-### algorithm ###
-def _algorithm_prefetch_default(image):
-	pass
+kMaxWorkers = int(config.get('global', 'max_workers'))
+if kMaxWorkers > 1:
+	from multiprocessing.pool import Pool
 
-def _algorithm_postfetch_default(image, image_data):
-	return image_data
-
-def _algorithm_run_default(image_data):
-	raise NotImplementedError()
-
-def _algorithm_parse_annotations_default(annotations):
-	return annotations[0]['model']
-
-def create_algorithm(domain, prefetch_hook=_algorithm_prefetch_default, postfetch_hook=_algorithm_postfetch_default, run_hook=_algorithm_run_default, parse_annotations_hook=_algorithm_parse_annotations_default, **kwargs):
+class BaseRunner(object):
 	"""
-	creates a function that gets run on each image selected by rigor and returns a result
-
-	Arguments:
-	domain -- the rigor domain used for whatever algorithm is being tested; used for finding images and annotations (TODO - Is this deprecated?)
-	prefetch_hook -- run with the image metadata before image is fetched.
-	postfetch_hook -- once image is fetched, processing is applied here to modify the image data before passing to algorithm
-	run_hook -- REQUIRED, runs the algorithm on the image data
-	parse_annotations_hook -- gets annotations and allows processing of the annotations to control how the annotations are returned
-
-	Returns runnable function
+	The base class for Runner objects, which fetch a set of images and apply
+	the Algorithm instance to each
 	"""
-	def _create_algorithm(image):
-		prefetch_hook(image)
-		image_data = rigor.imageops.fetch(image)
-		image_data = postfetch_hook(image, image_data)
-		t0 = time.time()
-		result = run_hook(image_data)
-		elapsed = time.time() - t0
-		annotations = parse_annotations_hook(image['annotations'])
-		if 'annotations' in image:
-			del(image['annotations'])
-		if 'tags' in image:
-			del(image['tags'])
-		return (image, result, annotations, elapsed)
-	return _create_algorithm
+	__metaclass__ = abc.ABCMeta
 
-### runner ###
-def _arguments_default(parser):
-	pass
+	def __init__(self, algorithm, arguments=None):
+		self._logger = rigor.logger.get_logger('.'.join((__name__, self.__class__.__name__)))
+		self._algorithm = algorithm
+		self._parameters = None
+		self._arguments = None
+		self.parse_arguments(arguments)
+		self.load_parameters()
+		self.set_parameters()
+		self._database = rigor.database.Database(self._arguments.database)
+		self._database_mapper = rigor.dbmapper.DatabaseMapper(self._database)
 
-def _parse_extended_arguments_default(parser):
-	pass
+	def parse_arguments(self, arguments):
+		"""
+		Parses command-line arguments
 
-def parse_arguments(arguments_hook=_arguments_default, parse_extended_arguments_hook=_parse_extended_arguments_default, cl_args=None, **kwargs):
-	"""
-	parses command line arguments
+		Sets self._arguments with the parsed argument object
+		"""
+		parser = argparse.ArgumentParser(description='Runs algorithm on relevant images', conflict_handler='resolve')
+		parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
+		limit = parser.add_mutually_exclusive_group()
+		limit.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
+		limit.add_argument('-i', '--image_id', type=int, metavar='IMAGE ID', required=False, help='Single image ID to run')
+		parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
+		parser.add_argument('--tag_require', action='append', dest='tags_require', required=False, help='Tag that must be present on selected images')
+		parser.add_argument('--tag_exclude', action='append', dest='tags_exclude', required=False, help='Tag that must not be present on selected images')
+		parser.add_argument('database', help='Name of the database to use')
+		self.add_arguments(parser)
+		if arguments:
+			self._arguments = parser.parse_args(arguments)
+		else:
+			self._arguments = parser.parse_args()
 
-	Arguments:
-	arguments_hook -- allows adding additional arguments to the parser
-	parse_extended_arguments_hook -- allows processing to be done on the post-parsing arguments
-	cl_args -- if provided, passed to parser instead of reading from default command line args. This allows for pre-processing of command line args.
+	def add_arguments(self, parser):
+		"""
+		This method can be overridden to add additional arguments or otherwise
+		modify the argument parser before it runs parse_args()
+		"""
+		pass
 
-	Returns arguments which can be used anywhere within the applicator object
-	"""
-	parser = argparse.ArgumentParser(description='Runs algorithm on relevant images', conflict_handler='resolve')
-	parser.add_argument('-d', '--database', required=True, help='Database to connect to') # FIXME should be positional
-	parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
-	limit = parser.add_mutually_exclusive_group()
-	limit.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
-	limit.add_argument('-i', '--image_id', type=int, metavar='IMAGE ID', required=False, help='Single image ID to run')
-	parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
-	parser.add_argument('--tag_require', action='append', dest='tags_require', required=False, help='Tag that must be present on selected images')
-	parser.add_argument('--tag_exclude', action='append', dest='tags_exclude', required=False, help='Tag that must not be present on selected images')
-	arguments_hook(parser)
-	if cl_args:
-		arguments = parser.parse_args(cl_args)
-	else:
-		arguments = parser.parse_args()
-	parse_extended_arguments_hook(arguments)
-	return arguments
-
-def _set_parameters_default(parameters):
-	pass
-
-def _load_parameters_default(args):
-	"""
-	If parameters are specified, it tries to read them as a JSON block.  If it
-	can't, it tries to open them and read them as a JSON file.  If it can't do
-	that either, then it just passes them along unchanged.
-	"""
-	if not args.parameters:
-		return None
-	try:
-		parameters = json.loads(args.parameters)
-	except ValueError:
+	def load_parameters(self):
+		"""
+		Given some item stored in the parameters attribute of the parsed arguments,
+		this method will first interpret the data as json, falling back to
+		interpreting it as a path to a file containing json.  If both of those
+		approaches fail, the contents of the parameter itself will be used.  In any
+		of these cases, the result is saved as self._parameters.
+		"""
+		if not self._arguments.parameters:
+			return None
 		try:
-			with open(args.parameters, 'rb') as param_file:
-				parameters = json.load(param_file)
+			self._parameters = json.loads(self._arguments.parameters)
 		except ValueError:
-			parameters = args.parameters
-	return parameters
+			try:
+				with open(self._arguments.parameters, 'rb') as param_file:
+					self._parameters = json.load(param_file)
+			except ValueError:
+				self._parameters = self._arguments.parameters
 
-def _evaluate_hook_default(results):
-	for result in results:
-		print '\t'.join(str(field) for field in result)
+	def set_parameters(self):
+		"""
+		This can be used to set the parameters, stored in self._parameters, on the
+		Algorithm object, once load_parameters() has run.
+		"""
+		pass
 
-def create_applicator(domain, load_parameters_hook=_load_parameters_default, set_parameters_hook=_set_parameters_default, evaluate_hook=_evaluate_hook_default, cl_args=None, **hooks):
-	"""
-	an applicator object is used to collect a set of images and/or ground truth,
-	run various detection algorithms, and return the results. It is fairly generically defined,
-	with much of the detail described in the various user-defined hooks.
+	@abc.abstractmethod
+	def run(self):
+		"""
+		This is the method called to run the algorithm.  It must be overridden.
+		"""
+		pass
 
-	Arguments:
-	domain -- the rigor domain used for whatever algorithm is being tested; used for finding images and annotations
-	load_parameters_hook -- defines how the parameters for the specfic algorithm are located and loaded
-	set_parameters_hook -- takes the loaded and/or pre-defined parameters and passes them to the algorithm
-	evaluate_hook -- takes the results of the algorithm and gives feedback about the performance of the algorithm
-	cl_args -- if provided, passed to parser instead of reading from default command line args. This allows for pre-processing of command line args.
+	def evaluate(self, results):
+		"""
+		This takes the final output of all applications of the algorithm and
+		formats it into a useful report.  It can optionally return results (that's
+		up to the implementer), but its main function should be to create reports
+		and format output.  The default implementation simply dumps the results to
+		stdout in json format.
+		"""
+		json.dump(results, sys.stdout)
+		return results # why not?
 
-	Returns applicator object
+class Runner(BaseRunner):
+	""" Class for running algorithms against test images """
 
-	See also availible hooks in:
-		parse_arguments
-		create_algorithm
-	"""
-	args = parse_arguments(cl_args=cl_args, **hooks)
-	parameters = load_parameters_hook(args)
-	set_parameters_hook(parameters)
-	algorithm = create_algorithm(domain, **hooks)
-	if args.image_id:
-		applicator = rigor.applicator.SingleApplicator(args.database, domain, algorithm, parameters, evaluate_hook, args.image_id)
-	else:
-		applicator = rigor.applicator.Applicator(args.database, domain, algorithm, parameters, evaluate_hook, limit=args.limit, random=args.random, tags_require=args.tags_require, tags_exclude=args.tags_exclude)
-	return applicator
+	def __init__(self, algorithm, domain, arguments=None):
+		"""
+		The domain dictates which images to use as sources. The limit is an
+		optional maximum number of images to use as sources.  If random, images
+		will be pulled in random order, up to limit; otherwise, images will be
+		pulled in sequential order.  Tags are used to control the image selection
+		further.
+		"""
+		BaseRunner.__init__(self, algorithm, arguments)
+		self._domain = domain
+		if kMaxWorkers > 1:
+			self._pool = Pool(int(config.get('global', 'max_workers')))
+
+	def run(self):
+		""" Runs the algorithm on the images matching the supplied arguments """
+		self._logger.debug('Fetching image IDs from database')
+		images = self._database_mapper.get_images_for_analysis(self._domain, self._arguments.limit, self._arguments.random, self._arguments.tags_require, self._arguments.tags_exclude)
+		self._logger.debug('Processing {0} images'.format(len(images)))
+		if kMaxWorkers > 1:
+			return self.evaluate(self._pool.map(self._algorithm.apply, images))
+		else:
+			return self.evaluate(map(self._algorithm.apply, images))
+
+class SingleRunner(BaseRunner):
+	""" Class for running algorithms against a single test image """
+
+	def __init__(self, algorithm, domain, image_id, arguments=None):
+		"""
+		algorithm is the algorithm to apply.  domain chooses where to search for
+		annotations.  image_id is the single image ID to test.  arguments is what
+		the argument parser will use; if None, sys.args will be used.
+		"""
+		BaseRunner.__init__(self, algorithm, arguments)
+		self._domain = domain
+		self._image_id = image_id
+
+	def run(self):
+		""" Runs the algorithm on the image and returns the result """
+		image = self._database_mapper.get_image_for_analysis(self._domain, self._image_id)
+		self._logger.debug('Processing image ID {}'.format(self._image_id))
+		return self.evaluate([self._algorithm.apply(image)])

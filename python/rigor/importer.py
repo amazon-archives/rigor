@@ -27,7 +27,6 @@ class Importer(object):
 	""" Class containing methods for importing images into the Rigor framework """
 
 	extensions = ('jpg', 'png')
-	""" List of file extensions to scan """
 
 	modes = {'1': 1, 'L': 8, 'RGB': 24, 'RGBA': 32}
 
@@ -37,13 +36,13 @@ class Importer(object):
 		files to the repository, as opposed to just copying them
 		"""
 		self._directory = directory
-		self._logger = rigor.logger.getLogger('.'.join((__name__, self.__class__.__name__)))
+		self._logger = rigor.logger.get_logger('.'.join((__name__, self.__class__.__name__)))
 		self._move = move
 		self._metadata = dict()
 		self._database = rigor.database.Database(database)
 		self._database_mapper = DatabaseMapper(self._database)
 		try:
-			import pyexiv2
+			import pyexiv2 # pylint: disable=W0612
 		except ImportError:
 			self._logger.warning("Unable to import pyexiv2; sensor data should be supplied in metadata")
 		os.umask(002)
@@ -71,28 +70,28 @@ class Importer(object):
 		""" Reads the metadata for an invididual image and returns an object ready to insert """
 		image = dict()
 		image['locator'] = uuid.uuid4().hex
-		image['hash'] = rigor.hash.hash(path)
+		image['hash'] = rigor.hash.sha1_hash(path)
 
 		data = rigor.imageops.read(path)
-		image['resolution'] = (data.shape[1],data.shape[0])
+		image['resolution'] = (data.shape[1], data.shape[0])
 		image['format'] = imghdr.what(path)
 		if len(data.shape) == 2:
 			image['depth'] = 8
 		else:
 			image['depth'] = data.shape[2]*8
 
-		md = metadata.copy()
-		md.update(self._read_local_metadata(basename))
-		if 'timestamp' in md:
-			image['stamp'] = datetime.strptime(md['timestamp'], config.get('import', 'timestamp_format'))
+		new_metadata = metadata.copy()
+		new_metadata.update(self._read_local_metadata(basename))
+		if 'timestamp' in new_metadata:
+			image['stamp'] = datetime.strptime(new_metadata['timestamp'], config.get('import', 'timestamp_format'))
 		else:
 			image['stamp'] = datetime.utcfromtimestamp(os.path.getmtime(path))
 
-		if 'sensor' in md:
-			image['sensor'] = md['sensor']
+		if 'sensor' in new_metadata:
+			image['sensor'] = new_metadata['sensor']
 		else:
 			try:
-				exif = pyexiv2.ImageMetadata(path)
+				exif = pyexiv2.ImageMetadata(path) # pylint: disable=E0602
 				exif.read()
 				if 'Exif.Image.Make' in exif and 'Exif.Image.Model' in exif:
 					image['sensor'] = ' '.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
@@ -101,32 +100,32 @@ class Importer(object):
 				image['sensor'] = None
 
 		for key in ('location', 'source', 'tags'):
-			if key in md:
-				image[key] = md[key]
+			if key in new_metadata:
+				image[key] = new_metadata[key]
 			else:
 				image[key] = None
 
 		annotations = list()
-		if 'annotations' in md:
-			for annotation in md['annotations']:
-				a = dict()
+		if 'annotations' in new_metadata:
+			for annotation in new_metadata['annotations']:
+				new_annotations = dict()
 				for key in ('boundary', 'domain', 'model', 'confidence', 'annotation_tags'):
 					if key in annotation:
-						a[key] = annotation[key]
+						new_annotations[key] = annotation[key]
 					else:
-						a[key] = None
+						new_annotations[key] = None
 				if 'timestamp' in annotation:
-					a['stamp'] = datetime.strptime(annotation['timestamp'], config.get('import', 'timestamp_format'))
+					new_annotations['stamp'] = datetime.strptime(annotation['timestamp'], config.get('import', 'timestamp_format'))
 				else:
-					a['stamp'] = image['stamp']
-				annotations.append(a)
+					new_annotations['stamp'] = image['stamp']
+				annotations.append(new_annotations)
 		image['annotations'] = annotations
 
 		destination = os.path.join(config.get('import', 'upload_repository'), image['locator'][0:2], image['locator'][2:4], os.extsep.join((image['locator'], image['format'])))
 		# We take control of the transaction here so we can fail if copying/moving the file fails
 		try:
-			with self._database_mapper._db.get_cursor() as cursor:
-				self._database_mapper._create_image(cursor, image)
+			with self._database_mapper._db.get_cursor() as cursor: # pylint: disable=W0212
+				self._database_mapper._create_image(cursor, image) # pylint: disable=W0212
 				# Create destination directory, if it doesn't already exist.  try/except
 				# structure avoids race condition
 				try:
@@ -143,7 +142,7 @@ class Importer(object):
 				os.chmod(destination, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
 				self._logger.info("Imported image {0}".format(image['locator']))
 				return image
-		except psycopg2.IntegrityError as e:
+		except psycopg2.IntegrityError:
 			self._logger.warn("The image at '{0}' already exists in the database".format(path))
 
 	def _read_local_metadata(self, basename):

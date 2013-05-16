@@ -1,3 +1,5 @@
+""" General utilities to make things easier in Rigor """
+
 import json
 from datetime import datetime
 

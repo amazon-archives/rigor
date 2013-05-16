@@ -1,16 +1,18 @@
+""" Logging functions """
+
 import logging
 
-_log = None
+__log__ = None
 
-def getLogger(name, level=logging.DEBUG):
-	global _log
+def get_logger(name, level=logging.DEBUG):
 	""" Returns a logger configured with Rigor formatting """
+	global __log__
 	log = None
-	if _log:
-		log = _log
+	if __log__:
+		log = __log__
 	else:
 		log = logging.getLogger(name)
-		_log = log
+		__log__ = log
 		console = logging.StreamHandler()
 		console.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s'))
 		log.addHandler(console)
