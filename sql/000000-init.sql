@@ -3,13 +3,11 @@ CREATE TABLE image (
     locator uuid UNIQUE NOT NULL,
     hash text UNIQUE NOT NULL,
     stamp timestamp with time zone,
-    sensor text,
     x_resolution integer NOT NULL,
     y_resolution integer NOT NULL,
     format text NOT NULL,
     depth smallint NOT NULL,
-    location point,
-    source text
+    location point
 );
 
 CREATE TABLE annotation (

@@ -87,23 +87,28 @@ class Importer(object):
 		else:
 			image['stamp'] = datetime.utcfromtimestamp(os.path.getmtime(path))
 
-		if 'sensor' in new_metadata:
-			image['sensor'] = new_metadata['sensor']
-		else:
+		image['tags'] = list()
+		if 'tags' in new_metadata:
+			image['tags'] = new_metadata['tags']
+		has_sensor = False
+		for tag in image['tags']:
+			if tag.startswith('sensor:'):
+				has_sensor = True
+				break
+		if not has_sensor:
 			try:
 				exif = pyexiv2.ImageMetadata(path) # pylint: disable=E0602
 				exif.read()
 				if 'Exif.Image.Make' in exif and 'Exif.Image.Model' in exif:
-					image['sensor'] = ' '.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
+					sensor_tag = 'sensor:' + '_'.join((exif['Exif.Image.Make'].value, exif['Exif.Image.Model'].value))
+					image['tags'] += sensor_tag.lower()
 			except NameError:
-				self._logger.warning("Image at {0}: No sensor listed in metadata, and EXIF data is not available; sensor will be null.".format(path))
-				image['sensor'] = None
+				self._logger.warning("Image at {0}: No sensor listed in metadata, and EXIF data is not available.".format(path))
 
-		for key in ('location', 'source', 'tags'):
-			if key in new_metadata:
-				image[key] = new_metadata[key]
-			else:
-				image[key] = None
+		if 'location' in new_metadata:
+			image['location'] = new_metadata['location']
+		else:
+			image['location'] = None
 
 		annotations = list()
 		if 'annotations' in new_metadata:
