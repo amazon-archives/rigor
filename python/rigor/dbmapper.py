@@ -74,6 +74,51 @@ class DatabaseMapper(object):
 		return image
 
 	@transactional
+	def get_images(self, limit=None, random=False, tags_require=None, tags_exclude=None):
+		"""
+		Retrieves all images from the database.  The optional limit limits the
+		number of images returned.  If random, the images will be randomly
+		selected.  Otherwise, images will be returned sorted by ID.
+		"""
+		pass
+
+	def _get_images(self, cursor, limit, random, tags_require=None, tags_exclude=None): # pylint: disable=R0914
+		args = []
+		sql = "SELECT image.* FROM image "
+		where = ""
+		# logic roughly from stackoverflow:
+		# http://stackoverflow.com/a/602892/856925
+		if tags_exclude or tags_require:
+			tagcount = 0
+			if tags_require:
+				for tag_require in tags_require:
+					tagstring = "t"+str(tagcount)
+					sql += "INNER JOIN tag "+tagstring+" ON "+tagstring+".image_id = image.id AND "+tagstring+".name=%s "
+					args.append(tag_require)
+					tagcount += 1
+			if tags_exclude:
+				for tag_exclude in tags_exclude:
+					tagstring = "t"+str(tagcount)
+					sql += "LEFT OUTER JOIN tag "+tagstring+" ON "+tagstring+".image_id = image.id AND "+tagstring+".name=%s "
+					where += "AND "+tagstring+" IS NULL "
+					args.append(tag_exclude)
+					tagcount += 1
+		where = ""
+		where += " GROUP BY image.id"
+		if random and limit:
+			where += " ORDER BY random()"
+		else:
+			where += " ORDER BY image.id"
+		if limit:
+			where += " LIMIT %s"
+			args.append(limit,)
+
+		sql = sql + where
+		cursor.execute(sql, args)
+		rows = cursor.fetch_all(kImageMapper)
+		return list(rows)
+
+	@transactional
 	def get_images_for_analysis(self, domain, limit=None, random=False, tags_require=None, tags_exclude=None):
 		"""
 		Retrieves all images for the domain from the database, used for
@@ -225,12 +270,12 @@ class DatabaseMapper(object):
 		pass
 
 	def _create_annotation(self, cursor, annotation, image_id):
-		image_id = self._get_next_id(cursor, 'annotation')
-		sql = "INSERT INTO annotation (id, image_id, confidence, stamp, boundary, domain, model) VALUES (%s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (image_id, image_id, annotation['confidence'], annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['model']))
-		annotation['id'] = image_id
+		annotation_id = self._get_next_id(cursor, 'annotation')
+		sql = "INSERT INTO annotation (id, image_id, confidence, stamp, boundary, domain, model) VALUES (%s, %s, %s, %s, %s, %s, %s);"
+		cursor.execute(sql, (annotation_id, image_id, annotation['confidence'], annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['model']))
+		annotation['id'] = annotation_id
 		if 'annotation_tags' in annotation and annotation['annotation_tags']:
-			self._create_annotation_tags(cursor, annotation['annotation_tags'], image_id)
+			self._create_annotation_tags(cursor, annotation['annotation_tags'], annotation_id)
 
 	def _create_annotation_tags(self, cursor, annotation_tags, annotation_id):
 		sql = "INSERT INTO annotation_tag (annotation_id, name) VALUES (%s, %s);"
