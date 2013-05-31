@@ -64,7 +64,7 @@ class DatabaseMapper(object):
 		pass
 
 	def _get_image_for_analysis(self, cursor, domain, image_id):
-		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth, FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth"
+		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth"
 		cursor.execute(sql, (domain, image_id))
 		row = cursor.fetch_only_one()
 		image = kImageMapper.map_row(row)
