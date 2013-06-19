@@ -31,6 +31,26 @@ class ObjectAreaEvaluator(object):
 		|D|), (sum_matchG, |G|)) tuple for the overall image.
 
 		ground_truths and detections should both be sequences of (x,y) point tuples.
+
+		>>> gt = (
+		... ((2, 2), (9, 2), (9, 4), (2, 4)),
+		... ((5, 7), (20, 7), (20, 11), (5, 11)),
+		... ((3, 13), (11, 13), (11, 15), (3, 15)),
+		... ((4, 16), (8, 16), (8, 19), (4, 19)),
+		... ((9, 20), (12, 20), (12, 22), (9, 22)),
+		... )
+		>>> det = (
+		... ((13, 2), (19, 2), (19, 5), (13, 5)),
+		... ((3, 7), (8, 7), (8, 11), (3, 11)),
+		... ((10, 7), (20, 7), (20, 11), (10, 11)),
+		... ((3, 13), (10, 13), (10, 19), (3, 19)),
+		... ((9, 20), (12, 20), (12, 22), (9, 22)),
+		... ((17, 17), (20, 17), (20, 20), (17, 20)),
+		... ((17, 10), (19, 10), (19, 15), (17, 15)),
+		... )
+		>>> e = ObjectAreaEvaluator()
+		>>> e.evaluate(gt, det)
+		(0.5428571428571428, 0.76, (3.8, 7.0), (3.8, 5.0))
 		"""
 		if not ground_truths or not detections:
 			return (0., 0., (0., 0.), (0., 0.))
@@ -50,10 +70,8 @@ class ObjectAreaEvaluator(object):
 		column_counts_precision = [0] * detection_count # number of items in the column of the precision matrix that are greater than the threshold
 		row_counts_recall = [0] * ground_truth_count # number of items in the row of the recall matrix that are greater than the threshold
 		column_counts_recall = [0] * detection_count # number of items in the column of the recall matrix that are greater than the threshold
-		row_sums_precision = [0.] * ground_truth_count # sum of items in the row of the precision matrix that are greater than the threshold
 		column_sums_precision = [0.] * detection_count # sum of items in the column of the precision matrix that are greater than the threshold
 		row_sums_recall = [0.] * ground_truth_count # sum of items in the row of the recall matrix that are greater than the threshold
-		column_sums_recall = [0.] * detection_count # sum of items in the column of the recall matrix that are greater than the threshold
 
 		match_ground_truth = 0. # sum of MatchG
 		match_detection = 0. # sum of MatchD
@@ -66,35 +84,30 @@ class ObjectAreaEvaluator(object):
 
 				precision_area = overlap_polygon.area / detection.area
 				precision_matrix[gt_index, det_index] = precision_area
+				recall_area = overlap_polygon.area / ground_truth.area
+				recall_matrix[gt_index, det_index] = recall_area
+
 				if precision_area > self.precision_threshold:
 					column_counts_precision[det_index] += 1
 					row_counts_precision[gt_index] += 1
-					column_sums_precision[det_index] += precision_area
-					row_sums_precision[gt_index] += precision_area
-
-				recall_area = overlap_polygon.area / ground_truth.area
-				recall_matrix[gt_index, det_index] = recall_area
+					row_sums_recall[gt_index] += recall_area
 				if recall_area > self.recall_threshold:
 					column_counts_recall[det_index] += 1
 					row_counts_recall[gt_index] += 1
-					column_sums_recall[det_index] += recall_area
-					row_sums_recall[gt_index] += recall_area
+					column_sums_precision[det_index] += precision_area
 			# Detection row has been computed for this ground truth entry. We can
 			# look for one-to-many matches (splits)
-			if row_counts_precision[gt_index] > 1 and row_sums_precision[gt_index] > self.recall_threshold:
-				match_ground_truth += self.scatter_punishment(row_counts_precision[gt_index])
+			if row_counts_recall[gt_index] == 1:
+				match_ground_truth += 1
+			elif row_counts_precision[gt_index] > 1 and row_sums_recall[gt_index] > self.recall_threshold:
+				match_ground_truth += self.scatter_punishment(row_counts_recall[gt_index])
 		# Got splits and sums and counts. Traverse columns and get merges
 		for det_index in range(0, detection_count):
-			if column_counts_recall[det_index] > 1 and column_sums_recall[det_index] > self.precision_threshold:
-				match_detection += self.scatter_punishment(column_counts_recall[det_index])
-		# And, finally, one-to-one matches
-		for gt_index in range(0, ground_truth_count):
-			if row_counts_precision[gt_index] == 1 and row_counts_recall[gt_index] == 1:
-				for det_index in range(0, detection_count):
-					if column_counts_precision[det_index] == 1 and column_counts_recall[det_index] == 1:
-						if precision_matrix[gt_index, det_index] > self.precision_threshold and recall_matrix[gt_index, det_index] > self.recall_threshold:
-							match_ground_truth += 1
-							match_detection += 1
+			if column_counts_precision[det_index] == 1:
+				match_detection += 1
+			elif column_counts_recall[det_index] > 1 and column_sums_precision[det_index] > self.precision_threshold:
+				match_detection += self.scatter_punishment(column_counts_precision[det_index])
+
 		recall = match_ground_truth / float(ground_truth_count)
 		precision = match_detection / float(detection_count)
 		return (precision, recall, (match_detection, float(detection_count)), (match_ground_truth, float(ground_truth_count)))
