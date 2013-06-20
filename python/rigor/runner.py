@@ -9,7 +9,6 @@ import rigor.database
 import rigor.dbmapper
 
 import abc
-import sys
 import json
 import argparse
 
@@ -30,10 +29,9 @@ class BaseRunner(object):
 		self._parameters = None
 		self._arguments = None
 		self.parse_arguments(arguments)
+		self._algorithm.set_arguments(self._arguments)
 		self.load_parameters()
 		self.set_parameters()
-		self._database = rigor.database.Database(self._arguments.database)
-		self._database_mapper = rigor.dbmapper.DatabaseMapper(self._database)
 
 	def parse_arguments(self, arguments):
 		"""
@@ -43,13 +41,6 @@ class BaseRunner(object):
 		"""
 		parser = argparse.ArgumentParser(description='Runs algorithm on relevant images', conflict_handler='resolve')
 		parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
-		limit = parser.add_mutually_exclusive_group()
-		limit.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
-		limit.add_argument('-i', '--image_id', type=int, metavar='IMAGE ID', required=False, help='Single image ID to run')
-		parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
-		parser.add_argument('--tag_require', action='append', dest='tags_require', required=False, help='Tag that must be present on selected images')
-		parser.add_argument('--tag_exclude', action='append', dest='tags_exclude', required=False, help='Tag that must not be present on selected images')
-		parser.add_argument('database', help='Name of the database to use')
 		self.add_arguments(parser)
 		if arguments:
 			self._arguments = parser.parse_args(arguments)
@@ -96,7 +87,7 @@ class BaseRunner(object):
 		"""
 		pass
 
-	def evaluate(self, results):
+	def evaluate(self, results): # pylint: disable=R0201
 		"""
 		This takes the final output of all applications of the algorithm and
 		formats it into a useful report.  It can optionally return results (that's
@@ -107,7 +98,39 @@ class BaseRunner(object):
 		print(results)
 		return results # why not?
 
-class Runner(BaseRunner):
+class DatabaseRunner(BaseRunner):
+	"""
+	Runner base class that uses the database to discover images for evaluation
+	"""
+	__metaclass__ = abc.ABCMeta
+
+	def __init__(self, algorithm, arguments=None):
+		BaseRunner.__init__(self, algorithm, arguments)
+		self._database = rigor.database.Database(self._arguments.database)
+		self._database_mapper = rigor.dbmapper.DatabaseMapper(self._database)
+
+	def parse_arguments(self, arguments):
+		"""
+		Parses command-line arguments
+
+		Sets self._arguments with the parsed argument object
+		"""
+		parser = argparse.ArgumentParser(description='Runs algorithm on relevant images', conflict_handler='resolve')
+		parser.add_argument('-p', '--parameters', required=False, help='Path to parameters file, or JSON block containing parameters')
+		limit = parser.add_mutually_exclusive_group()
+		limit.add_argument('-l', '--limit', type=int, metavar='COUNT', required=False, help='Maximum number of images to use')
+		limit.add_argument('-i', '--image_id', type=int, metavar='IMAGE ID', required=False, help='Single image ID to run')
+		parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
+		parser.add_argument('--tag_require', action='append', dest='tags_require', required=False, help='Tag that must be present on selected images')
+		parser.add_argument('--tag_exclude', action='append', dest='tags_exclude', required=False, help='Tag that must not be present on selected images')
+		parser.add_argument('database', help='Name of the database to use')
+		self.add_arguments(parser)
+		if arguments:
+			self._arguments = parser.parse_args(arguments)
+		else:
+			self._arguments = parser.parse_args()
+
+class Runner(DatabaseRunner):
 	""" Class for running algorithms against test images """
 
 	def __init__(self, algorithm, domain, arguments=None):
@@ -118,7 +141,7 @@ class Runner(BaseRunner):
 		pulled in sequential order.  Tags are used to control the image selection
 		further.
 		"""
-		BaseRunner.__init__(self, algorithm, arguments)
+		DatabaseRunner.__init__(self, algorithm, arguments)
 		self._domain = domain
 		if kMaxWorkers > 1:
 			self._pool = Pool(int(config.get('global', 'max_workers')))
@@ -133,7 +156,7 @@ class Runner(BaseRunner):
 		else:
 			return self.evaluate(map(self._algorithm.apply, images))
 
-class SingleRunner(BaseRunner):
+class SingleRunner(DatabaseRunner):
 	""" Class for running algorithms against a single test image """
 
 	def __init__(self, algorithm, domain, image_id, arguments=None):
@@ -142,7 +165,7 @@ class SingleRunner(BaseRunner):
 		annotations.  image_id is the single image ID to test.  arguments is what
 		the argument parser will use; if None, sys.args will be used.
 		"""
-		BaseRunner.__init__(self, algorithm, arguments)
+		DatabaseRunner.__init__(self, algorithm, arguments)
 		self._domain = domain
 		self._image_id = image_id
 

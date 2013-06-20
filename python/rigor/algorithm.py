@@ -13,6 +13,11 @@ class Algorithm(object):
 
 	def __init__(self):
 		self._logger = rigor.logger.get_logger('.'.join((__name__, self.__class__.__name__)))
+		self._arguments = None
+
+	def set_arguments(self, arguments):
+		""" Makes command-line arguments available to the algorithm """
+		self._arguments = arguments
 
 	def prefetch(self, image): # pylint: disable=R0201
 		"""
