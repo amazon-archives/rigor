@@ -1,5 +1,8 @@
 """ Algorithm evaluators for Rigor """
 
+from __future__ import print_function
+import sys
+
 class ObjectAreaEvaluator(object):
 	"""
 	Compares ground truth to detections using Wolf and Jolion's algorithm.
@@ -23,6 +26,32 @@ class ObjectAreaEvaluator(object):
 		self.scatter_punishment = scatter_punishment
 		self.precision_threshold = precision_threshold
 		self.recall_threshold = recall_threshold
+
+	@staticmethod
+	def non_zero_polygon(polygon):
+		"""
+		Checks that a polygon has a nonzero area. If the area is zero, it will be
+		dilated by a small amount so that overlap and such can be measured.
+
+		>>> from shapely.geometry import Polygon
+		>>> zero_area = Polygon(((1, 1), (11, 1), (11, 1), (1, 1)))
+		>>> result = ObjectAreaEvaluator.non_zero_polygon(zero_area)
+		>>> round(result.area, 3)
+		1.005
+		>>> result.bounds
+		(0.95, 0.95, 11.05, 1.05)
+		>>> nonzero_area = Polygon(((1, 1), (11, 1), (11, 11), (1, 11)))
+		>>> result = ObjectAreaEvaluator.non_zero_polygon(nonzero_area)
+		>>> round(result.area, 3)
+		100.0
+		>>> result.bounds
+		(1.0, 1.0, 11.0, 11.0)
+		"""
+		if polygon.area > 0:
+			return polygon
+
+		print("Warning: polygon has zero area; dilating", file=sys.stderr)
+		return polygon.buffer(0.05, 1).convex_hull
 
 	def evaluate(self, ground_truths, detections):
 		"""
@@ -77,9 +106,9 @@ class ObjectAreaEvaluator(object):
 		match_detection = 0. # sum of MatchD
 
 		for gt_index in range(0, ground_truth_count):
-			ground_truth = ground_truths[gt_index]
+			ground_truth = ObjectAreaEvaluator.non_zero_polygon(ground_truths[gt_index])
 			for det_index in range(0, detection_count):
-				detection = detections[det_index]
+				detection = ObjectAreaEvaluator.non_zero_polygon(detections[det_index])
 				overlap_polygon = ground_truth.intersection(detection)
 
 				precision_area = overlap_polygon.area / detection.area
