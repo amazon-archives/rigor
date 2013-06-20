@@ -101,10 +101,10 @@ class BaseRunner(object):
 		This takes the final output of all applications of the algorithm and
 		formats it into a useful report.  It can optionally return results (that's
 		up to the implementer), but its main function should be to create reports
-		and format output.  The default implementation simply dumps the results to
-		stdout in json format.
+		and format output.  The default implementation simply prints the results to
+		stdout
 		"""
-		json.dump(results, sys.stdout)
+		print(results)
 		return results # why not?
 
 class Runner(BaseRunner):
