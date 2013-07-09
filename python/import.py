@@ -9,7 +9,7 @@ def main():
 	parser.add_argument('-m', '--move', action="store_true", dest='move', default=False, help='Move files into repository instead of copying')
 	args = parser.parse_args()
 	for directory in args.directories:
-		i = rigor.importer.Importer(args.database, directory, args.move)
+		i = rigor.importer.Importer(directory, args.database, args.move)
 		i.run()
 
 if __name__ == '__main__':

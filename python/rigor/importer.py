@@ -80,6 +80,8 @@ class Importer(object):
 		else:
 			image['depth'] = data.shape[2]*8
 
+		if not metadata:
+			metadata = {};
 		new_metadata = metadata.copy()
 		new_metadata.update(self._read_local_metadata(basename))
 		if 'timestamp' in new_metadata:
