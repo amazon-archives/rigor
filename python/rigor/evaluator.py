@@ -89,8 +89,13 @@ class ObjectAreaEvaluator(object):
 		if not hasattr(detections[0], 'intersection'):
 			detections = [self.Polygon(value) for value in detections]
 
+		ground_truths = [value.length for value in ground_truths if value.length > 0.]
+
 		ground_truth_count = len(ground_truths)
 		detection_count = len(detections)
+
+		if ground_truth_count == 0:
+			return (float('nan'), float('nan'), (float('nan'), float(detection_count)), (float('nan'), float(ground_truth_count)))
 
 		recall_matrix = self.np.empty((ground_truth_count, detection_count), dtype=float)
 		precision_matrix = self.np.empty((ground_truth_count, detection_count), dtype=float)
