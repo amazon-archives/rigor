@@ -143,34 +143,20 @@ class Runner(DatabaseRunner):
 		"""
 		DatabaseRunner.__init__(self, algorithm, arguments)
 		self._domain = domain
+		self._image_id = None
 		if kMaxWorkers > 1:
 			self._pool = Pool(int(config.get('global', 'max_workers')))
 
 	def run(self):
 		""" Runs the algorithm on the images matching the supplied arguments """
 		self._logger.debug('Fetching image IDs from database')
-		images = self._database_mapper.get_images_for_analysis(self._domain, self._arguments.limit, self._arguments.random, self._arguments.tags_require, self._arguments.tags_exclude)
+		if self._arguments.image_id:
+			self._image_id = self._arguments.image_id
+			images = (self._database_mapper.get_image_for_analysis(self._domain, self._image_id), )
+		else:
+			images = self._database_mapper.get_images_for_analysis(self._domain, self._arguments.limit, self._arguments.random, self._arguments.tags_require, self._arguments.tags_exclude)
 		self._logger.debug('Processing {0} images'.format(len(images)))
 		if kMaxWorkers > 1:
 			return self.evaluate(self._pool.map(self._algorithm.apply, images))
 		else:
 			return self.evaluate(map(self._algorithm.apply, images))
-
-class SingleRunner(DatabaseRunner):
-	""" Class for running algorithms against a single test image """
-
-	def __init__(self, algorithm, domain, image_id, arguments=None):
-		"""
-		algorithm is the algorithm to apply.  domain chooses where to search for
-		annotations.  image_id is the single image ID to test.  arguments is what
-		the argument parser will use; if None, sys.args will be used.
-		"""
-		DatabaseRunner.__init__(self, algorithm, arguments)
-		self._domain = domain
-		self._image_id = image_id
-
-	def run(self):
-		""" Runs the algorithm on the image and returns the result """
-		image = self._database_mapper.get_image_for_analysis(self._domain, self._image_id)
-		self._logger.debug('Processing image ID {}'.format(self._image_id))
-		return self.evaluate([self._algorithm.apply(image)])
