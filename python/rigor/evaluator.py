@@ -89,7 +89,7 @@ class ObjectAreaEvaluator(object):
 		if not hasattr(detections[0], 'intersection'):
 			detections = [self.Polygon(value) for value in detections]
 
-		ground_truths = [value.length for value in ground_truths if value.length > 0.]
+		ground_truths = [value for value in ground_truths if value.length > 0.]
 
 		ground_truth_count = len(ground_truths)
 		detection_count = len(detections)
