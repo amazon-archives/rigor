@@ -39,7 +39,7 @@ class DatabaseMapper(object):
 		pass
 
 	def _get_only_image_by_id(self, cursor, image_id):
-		sql = "SELECT id, locator, hash, stamp, x_resolution, y_resolution, format, depth, location FROM image WHERE id = %s;"
+		sql = "SELECT id, locator, hash, stamp, x_resolution, y_resolution, format, depth, source_id, location FROM image WHERE id = %s;"
 		cursor.execute(sql, (image_id, ))
 		image = cursor.fetch_only_one(kImageMapper)
 		return image
@@ -64,7 +64,7 @@ class DatabaseMapper(object):
 		pass
 
 	def _get_image_for_analysis(self, cursor, domain, image_id):
-		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth"
+		sql = "SELECT * FROM (SELECT image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth, image.source_id FROM annotation LEFT JOIN image ON annotation.image_id = image.id WHERE annotation.domain = %s) image WHERE image.id = %s GROUP BY image.id, image.locator, image.hash, image.stamp, image.x_resolution, image.y_resolution, image.format, image.depth, image.source_id"
 		cursor.execute(sql, (domain, image_id))
 		row = cursor.fetch_only_one()
 		image = kImageMapper.map_row(row)
@@ -192,11 +192,11 @@ class DatabaseMapper(object):
 
 	def _create_image(self, cursor, image):
 		image_id = self._get_next_id(cursor, 'image')
-		sql = "INSERT INTO image (id, locator, hash, stamp, x_resolution, y_resolution, format, depth, location) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);"
+		sql = "INSERT INTO image (id, locator, hash, stamp, x_resolution, y_resolution, format, depth, source_id, location) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
 		location = None
 		if image['location']:
 			location = "({0},{1})".format(image['location'][0], image['location'][1])
-		cursor.execute(sql, (image_id, image['locator'], image['hash'], image['stamp'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], location))
+		cursor.execute(sql, (image_id, image['locator'], image['hash'], image['stamp'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], image['source_id'], location))
 		image['id'] = image_id
 		if image['tags']:
 			self._create_tags(cursor, image['tags'], image_id)

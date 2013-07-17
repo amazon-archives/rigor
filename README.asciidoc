@@ -19,6 +19,8 @@ Prerequisites
 - PostgreSQL 9.x
 - image repository mounted locally, read-only
 - exiv2 for Python (import only)
+- NumPy (to use the ObjectAreaEvaluator)
+- Shapely (to use the ObjectAreaEvaluator)
 - import repository mounted locally, read-write (import only)
 
 Configuration
@@ -63,12 +65,13 @@ Here is an example file with all of the metadata fields used.  Most are optional
     "source:berkeley_2011-02",
     "sensor:htc_nexus_one"
   ],
+  "source_id" : "img_12886.jpg",           <4>
   "annotations" : [
     {
-      "domain" : "money",                  <4>
-      "confidence" : "money",              <5>
-      "model" : "20d",                     <6>
-      "boundary" : [                       <7>
+      "domain" : "money",                  <5>
+      "confidence" : "money",              <6>
+      "model" : "20d",                     <7>
+      "boundary" : [                       <8>
         [1, 2],
         [2, 4],
         [2, 8],
@@ -87,10 +90,11 @@ Here is an example file with all of the metadata fields used.  Most are optional
 <1> The time and date (UTC) that the image was taken.  The file timestamp will be used if this is not supplied here.
 <2> WGS84 lon/lat Where the image was taken.  Ideally, this can be extracted from EXIF data, but at the moment this isn't supported
 <3> Tags are freeform.  The more the merrier.
-<4> Domain is a sort of namespace for the annotation.  The algorithm to test is chosen by the domain.
-<5> Confidence is the level of confidence we have in the annotation's correctness.  Values should range from 1 to 5 where 1 is "unreviewed" and 5 is "publishable"
-<6> The model is the actual ground truth used to compare against the returned value from an algorithm.
-<7> The boundary is a list of coordinates, each defining a point in a polygonal bounding box.
+<4> Source ID is an original filename, if there is one
+<5> Domain is a sort of namespace for the annotation.  The algorithm to test is chosen by the domain.
+<6> Confidence is the level of confidence we have in the annotation's correctness.  Values should range from 1 to 5 where 1 is "unreviewed" and 5 is "publishable"
+<7> The model is the actual ground truth used to compare against the returned value from an algorithm.
+<8> The boundary is a list of coordinates, each defining a point in a polygonal bounding box.
 
 Here is a very basic metadata file.  While as much information as possible should be included in the metadata file, in some cases it may not be available.  The attributes below should be considered the bare minimum for metadata:
 

@@ -88,6 +88,10 @@ class Importer(object):
 			image['stamp'] = datetime.strptime(new_metadata['timestamp'], config.get('import', 'timestamp_format'))
 		else:
 			image['stamp'] = datetime.utcfromtimestamp(os.path.getmtime(path))
+		if 'source_id' in new_metadata:
+			image['source_id'] = new_metadata['source_id']
+		else:
+			image['source_id'] = None
 
 		image['tags'] = list()
 		if 'tags' in new_metadata:
