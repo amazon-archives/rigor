@@ -69,7 +69,7 @@ Here is an example file with all of the metadata fields used.  Most are optional
   "annotations" : [
     {
       "domain" : "money",                  <5>
-      "confidence" : "money",              <6>
+      "confidence" : "2",                  <6>
       "model" : "20d",                     <7>
       "boundary" : [                       <8>
         [1, 2],
