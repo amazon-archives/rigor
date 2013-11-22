@@ -75,6 +75,8 @@ class Importer(object):
 		data = rigor.imageops.read(path)
 		image['resolution'] = (data.shape[1], data.shape[0])
 		image['format'] = imghdr.what(path)
+		if not image['format']:
+			image['format'] = 'jpeg' # TODO: why is imghdr.what returning None for /home/kaolin/data/ICDAR2005SceneCompetition/wltang_15.08.2002/IMG_0001.JPG
 		if len(data.shape) == 2:
 			image['depth'] = 8
 		else:
