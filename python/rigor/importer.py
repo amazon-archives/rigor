@@ -80,7 +80,7 @@ class Importer(object):
 		if len(data.shape) == 2:
 			image['depth'] = 8
 		else:
-			image['depth'] = data.shape[2]*8
+			image['depth'] = data.shape[2] * 8
 
 		if not metadata:
 			metadata = {};
