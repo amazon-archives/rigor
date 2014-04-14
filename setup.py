@@ -4,9 +4,10 @@ from distutils.core import setup
 import glob
 import os
 
-scripts = glob.glob(os.path.join('tools', '*.py'))
+scripts=glob.glob(os.path.join('tools', '*.py'))
 scripts.append('python/import.py')
-sql_files = glob.glob(os.path.join('sql', '*.sql'))
+
+sql=glob.glob(os.path.join('sql', '*.sql'))
 
 setup(name='Rigor',
 	version='1.0.1',
@@ -17,7 +18,7 @@ setup(name='Rigor',
 	package_dir = {'': 'python'},
 	packages=['rigor',],
 	scripts=scripts,
-	data_files=[('config', 'rigor.ini.sample'),
-		('sql', sql_files),
-	],
+	data_files=[
+		('sql', sql),
+	]
 )
