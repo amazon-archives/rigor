@@ -72,29 +72,29 @@ class Database(object):
 	@abstractmethod
 	def get_cursor(self, commit=True):
 		""" Gets a cursor from a connection in the pool """
-		raise NotImplementedError("Must be implemented in the adaptor")
+		raise NotImplementedError("Must be implemented in the adapter")
 
 	@abstractmethod
 	def commit(self, cursor):
 		""" Commits the transaction, then closes the cursor """
-		raise NotImplementedError("Must be implemented in the adaptor")
+		raise NotImplementedError("Must be implemented in the adapter")
 
 	@abstractmethod
 	def rollback(self, cursor):
 		""" Rolls back the transaction, then closes the cursor """
-		raise NotImplementedError("Must be implemented in the adaptor")
+		raise NotImplementedError("Must be implemented in the adapter")
 
 	@staticmethod
 	def instance(database):
-		adaptor_name = config.get('database', 'adaptor')
-		adaptor = __import__("rigor.adaptors.{}_adaptor".format(adaptor_name), fromlist=["rigor.adaptors", ])
-		return adaptor.Database(database)
+		adapter_name = config.get('database', 'adapter')
+		adapter = __import__("rigor.adapters.{}_adapter".format(adapter_name), fromlist=["rigor.adapters", ])
+		return adapter.Database(database)
 
 	@staticmethod
 	def cls():
-		adaptor_name = config.get('database', 'adaptor')
-		adaptor = __import__("rigor.adaptors.{}_adaptor".format(adaptor_name), fromlist=["rigor.adaptors", ])
-		return adaptor.Database
+		adapter_name = config.get('database', 'adapter')
+		adapter = __import__("rigor.adapters.{}_adapter".format(adapter_name), fromlist=["rigor.adapters", ])
+		return adapter.Database
 
 class RowMapper(object):
 	"""

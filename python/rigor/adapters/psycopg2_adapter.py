@@ -1,4 +1,4 @@
-""" psycopg2 adaptors for Rigor """
+""" psycopg2 adapter support for Rigor """
 
 from rigor.config import config
 import rigor.database

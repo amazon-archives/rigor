@@ -12,7 +12,7 @@ __defaults__ = dict(
 		ssl = 'yes',
 		min_database_connections = 0,
 		max_database_connections = 10,
-		adaptor = 'psycopg2',
+		adapter = 'psycopg2',
 		metadata_file = 'metadata.json',
 		timestamp_format = '%Y-%m-%dT%H:%M:%SZ'
 	)

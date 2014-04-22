@@ -1,8 +1,8 @@
-""" pg8000 adaptors for Rigor """
+""" pg8000 adapter support for Rigor """
 
 from rigor.config import config
 from contextlib import contextmanager
-from rigor.adaptors.common import DictCursor
+from rigor.adapters.common import DictCursor
 
 import pg8000
 import sys

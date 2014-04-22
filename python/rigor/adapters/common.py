@@ -1,4 +1,4 @@
-""" Helpers needed by multiple adaptors """
+""" Helpers needed by multiple adapters """
 
 class DictRow(object):
 	""" Implementation for a row behaving as a dict """
