@@ -2,22 +2,39 @@
 
 from rigor.config import config
 
-import psycopg2
-import psycopg2.extensions
-import psycopg2.extras
-
-from psycopg2.extensions import register_type
-from psycopg2.extras import register_uuid
-from psycopg2.pool import ThreadedConnectionPool
-
 from contextlib import contextmanager
 
 import ConfigParser
+import exceptions
+from abc import ABCMeta, abstractmethod
 
 kTemplateDatabase = 'template1'
 
-class RigorCursor(psycopg2.extras.DictCursor):
-	""" Normal DictCursor with row mapping and enhanced fetch capabilities """
+class Error(exceptions.StandardError):
+	"""
+	See PEP-249
+	Exception that is the base class of all other error exceptions.
+	You can use this to catch all errors with one single except statement.
+	"""
+	pass
+
+class DatabaseError(Error):
+	"""
+	See PEP-249
+	Exception raised for errors that are related to the database.
+	"""
+	pass
+
+class IntegrityError(DatabaseError):
+	"""
+	See PEP-249
+	Exception raised when the relational integrity of the database is affected,
+	e.g. a foreign key check fails.
+	"""
+	pass
+
+class RigorCursorMixin(object):
+	""" Mixed in with a DictCursor to add row mapping and enhanced fetch capabilities """
 
 	def fetch_all(self, row_mapper=None):
 		""" Fetches all rows, applying row mapper if any """
@@ -41,110 +58,43 @@ class RigorCursor(psycopg2.extras.DictCursor):
 		exactly one row found.
 		"""
 		if self.rowcount != 1:
-			raise psycopg2.IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
+			raise IntegrityError("Expected one record found, actually found %d. Query: %s" % (self.rowcount, self.query))
 		return self.fetch_one(row_mapper)
 
-def template(function):
-	"""
-	Executes the SQL in the function while connected to the template database
-	"""
-	def _execute(*args, **kwargs):
-		dsn = Database.build_dsn(kTemplateDatabase)
-		connection = psycopg2.connect(dsn)
-		try:
-			connection.autocommit = True
-			cursor = connection.cursor()
-			cursor.execute(function(*args, **kwargs))
-		finally:
-			connection.close()
-	return _execute
-
 class Database(object):
-	""" Container for a database connection pool """
+	""" Abstracts a database and its connections """
+	__metaclass__ = ABCMeta
 
+	@abstractmethod
 	def __init__(self, database):
-		register_type(psycopg2.extensions.UNICODE)
-		register_uuid()
 		self._database_name = database
-		dsn = Database.build_dsn(database)
-		self._pool = ThreadedConnectionPool(config.get('database', 'min_database_connections'), config.get('database', 'max_database_connections'), dsn)
 
-	@staticmethod
-	def build_dsn(database):
-		""" Builds the database connection string from config values """
-		dsn = "dbname='{0}' host='{1}'".format(database, config.get('database', 'host'))
-		try:
-			ssl = config.getboolean('database', 'ssl')
-			if ssl:
-				dsn += " sslmode='require'"
-		except ConfigParser.Error:
-			pass
-		try:
-			username = config.get('database', 'username')
-			dsn += " user='{0}'".format(username)
-		except ConfigParser.Error:
-			pass
-		try:
-			password = config.get('database', 'password')
-			dsn += " password='{0}'".format(password)
-		except ConfigParser.Error:
-			pass
-		return dsn
-
-	@staticmethod
-	@template
-	def create(name):
-		""" Creates a new database with the given name """
-		return "CREATE DATABASE {0};".format(name)
-
-	@staticmethod
-	@template
-	def drop(name):
-		""" Drops the database with the given name """
-		return "DROP DATABASE {0};".format(name)
-
-	@staticmethod
-	@template
-	def clone(source, destination):
-		"""
-		Copies the source database to a new destination database.  This may fail if
-		the source database is in active use.
-		"""
-		return "CREATE DATABASE {0} WITH TEMPLATE {1};".format(destination, source)
-
-	@contextmanager
+	@abstractmethod
 	def get_cursor(self, commit=True):
 		""" Gets a cursor from a connection in the pool """
-		connection = self._pool.getconn()
-		cursor = connection.cursor(cursor_factory=RigorCursor)
-		try:
-			yield cursor
-		except:
-			self.rollback(cursor)
-			raise
-		else:
-			if commit:
-				self.commit(cursor)
-			else:
-				self.rollback(cursor)
+		raise NotImplementedError("Must be implemented in the adaptor")
 
-	def _close_cursor(self, cursor):
-		""" Closes a cursor and releases the connection to the pool """
-		cursor.close()
-		self._pool.putconn(cursor.connection)
-
+	@abstractmethod
 	def commit(self, cursor):
 		""" Commits the transaction, then closes the cursor """
-		cursor.connection.commit()
-		self._close_cursor(cursor)
+		raise NotImplementedError("Must be implemented in the adaptor")
 
+	@abstractmethod
 	def rollback(self, cursor):
 		""" Rolls back the transaction, then closes the cursor """
-		cursor.connection.rollback()
-		self._close_cursor(cursor)
+		raise NotImplementedError("Must be implemented in the adaptor")
 
-	def __del__(self):
-		self._pool.closeall()
+	@staticmethod
+	def instance(database):
+		adaptor_name = config.get('database', 'adaptor')
+		adaptor = __import__("rigor.adaptors.{}_adaptor".format(adaptor_name), fromlist=["rigor.adaptors", ])
+		return adaptor.Database(database)
+
+	@staticmethod
+	def cls():
+		adaptor_name = config.get('database', 'adaptor')
+		adaptor = __import__("rigor.adaptors.{}_adaptor".format(adaptor_name), fromlist=["rigor.adaptors", ])
+		return adaptor.Database
 
 class RowMapper(object):
 	"""
@@ -204,4 +154,4 @@ def polygon_tuple_adapter(polygon):
 	""" Returns a string formatted in a way that PostgreSQL recognizes as a polygon, given a sequence of pairs """
 	if polygon is None:
 		return None
-	return str(tuple(tuple(point) for point in polygon))
+	return str(tuple(tuple([int(coord) for coord in point]) for point in polygon))

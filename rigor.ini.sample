@@ -31,6 +31,9 @@ host = ea
 # Maximum number of pooled connections to database
 #max_database_connections = 10
 
+# Adaptor to use for database connections
+#adaptor = psycopg2
+
 [import]
 # Where images should be copied or moved to once imported
 upload_repository = /data/rigor/import

@@ -106,7 +106,7 @@ class DatabaseRunner(BaseRunner):
 
 	def __init__(self, algorithm, arguments=None):
 		BaseRunner.__init__(self, algorithm, arguments)
-		self._database = rigor.database.Database(self._arguments.database)
+		self._database = rigor.database.Database.instance(self._arguments.database)
 		self._database_mapper = rigor.dbmapper.DatabaseMapper(self._database)
 
 	def parse_arguments(self, arguments):

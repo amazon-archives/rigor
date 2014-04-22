@@ -27,7 +27,7 @@ def main():
 	parser.add_argument('-p', '--percent_training', dest='percent', default=0.25, required=False, help='Tag indicating what percent of images for training')
 	parser.add_argument('database', help='Name of database to use')
 	args = parser.parse_args()
-	db = Database(args.database)
+	db = Database.instance(args.database)
 	db_mapper = DatabaseMapper(db)
 	images = db_mapper.get_images_for_analysis(kDomain, limit=args.limit, random=args.random, tags_require=args.tags_require, tags_exclude=args.tags_exclude)
 	blur_images = list()

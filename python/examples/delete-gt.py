@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Deletes ground truth (image, thumb
 parser.add_argument('database', help='Name of database to use')
 parser.add_argument('delete_ids', metavar='delete_id', nargs='+', type=int, help='ID(s) of images to delete')
 args = parser.parse_args()
-db = Database(args.database)
+db = Database.instance(args.database)
 db_mapper = DatabaseMapper(db)
 for image_id in args.delete_ids:
 	image = db_mapper.get_image_by_id(image_id)

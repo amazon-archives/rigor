@@ -35,7 +35,7 @@ def patch(mapper, patch_dir, start_level, stop_level, dry_run, quiet):
 					mapper.patch(patch, patch_number)
 
 def cmd_patch(args):
-	database = Database(args.database)
+	database = Database.instance(args.database)
 	mapper = DatabaseMapper(database)
 	start_level = mapper.get_patch_level() + 1
 	stop_level = None
@@ -47,34 +47,36 @@ def cmd_create(args):
 	if not args.quiet:
 		print("Creating database {0}".format(args.database))
 	if not args.dry_run:
-		Database.create(args.database)
+		Database.cls().create(args.database)
 	stop_level = None
 	if args.level:
 		stop_level = args.level
 	try:
-		database = Database(args.database)
+		database = Database.instance(args.database)
 		mapper = DatabaseMapper(database)
 		patch(mapper, args.patch_dir, 0, stop_level, args.dry_run, True)
 	except:
+		# Save exception for later
+		exc_info = sys.exc_info()
 		try:
-			Database.drop(args.database)
+			Database.cls().drop(args.database)
 		except:
 			pass
-		raise
+		raise exc_info[0], exc_info[1], exc_info[2]
 
 def cmd_clone(args):
 	if not args.quiet:
 		print("Cloning database {0} to {1}".format(args.source, args.destination))
 	if not args.dry_run:
-		Database.clone(args.source, args.destination)
-		database = Database(args.destination)
+		Database.cls().clone(args.source, args.destination)
+		database = Database.instance(args.destination)
 		mapper = DatabaseMapper(database)
 		mapper.set_destroy_lock(False) # new databases are always unlocked
 
 def cmd_destroy(args):
 	if not args.quiet:
 		print("Destroying database {0}".format(args.database))
-	database = Database(args.database)
+	database = Database.instance(args.database)
 	mapper = DatabaseMapper(database)
 	if mapper.get_destroy_lock():
 		sys.stderr.write("Error: database is locked\n")
@@ -82,13 +84,13 @@ def cmd_destroy(args):
 	mapper = None
 	database = None
 	if not args.dry_run:
-		Database.drop(args.database)
+		Database.cls().drop(args.database)
 
 def cmd_lock(args):
 	if not args.quiet:
 		print("Locking database {0}".format(args.database))
 	if not args.dry_run:
-		database = Database(args.database)
+		database = Database.instance(args.database)
 		mapper = DatabaseMapper(database)
 		mapper.set_destroy_lock(True)
 
@@ -96,7 +98,7 @@ def cmd_unlock(args):
 	if not args.quiet:
 		print("Unlocking database {0}".format(args.database))
 	if not args.dry_run:
-		database = Database(args.database)
+		database = Database.instance(args.database)
 		mapper = DatabaseMapper(database)
 		mapper.set_destroy_lock(False)
 

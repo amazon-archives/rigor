@@ -15,7 +15,7 @@ Prerequisites
 -------------
 - Python v2.7 or higher
 - OpenCV 2.x Python bindings
-- psycopg2
+- psycopg2 or pg8000
 - PostgreSQL 9.x
 - image repository mounted locally, read-only
 - exiv2 for Python (import only)

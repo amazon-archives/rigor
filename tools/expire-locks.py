@@ -18,7 +18,7 @@ from rigor.database import Database
 class LockExpirer(object):
 	""" Expires locks in the database """
 	def __init__(self, database):
-		self._dbmapper = DatabaseMapper(Database(database))
+		self._dbmapper = DatabaseMapper(Database.instance(database))
 
 	def run(self):
 		self._dbmapper.expire_locks()

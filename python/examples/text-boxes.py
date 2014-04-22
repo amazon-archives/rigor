@@ -32,7 +32,7 @@ def main():
 	args = parser.parse_args()
 	parameters["classifier_file"] = args.classifier_file
 	i = rigor.runner.Runner('text', parameters, limit=args.limit, random=args.random)
-	database_mapper = DatabaseMapper(Database(args.database))
+	database_mapper = DatabaseMapper(Database.instance(args.database))
 	for result in i.run():
 		detected = result[1]
 		expected = result[2]

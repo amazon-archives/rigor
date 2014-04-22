@@ -1,10 +1,9 @@
 """ Mappings between logical operations and database queries """
 
-from rigor.database import transactional, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
+from rigor.database import transactional, IntegrityError, RowMapper, uuid_transform, polygon_transform, polygon_tuple_adapter
 
 import uuid
 from datetime import datetime, timedelta
-import psycopg2
 
 def resolution_transform(value, _column_name, row):
 	"""
@@ -192,11 +191,11 @@ class DatabaseMapper(object):
 
 	def _create_image(self, cursor, image):
 		image_id = self._get_next_id(cursor, 'image')
-		sql = "INSERT INTO image (id, locator, hash, stamp, x_resolution, y_resolution, format, depth, source_id, location) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-		location = None
+		sql = "INSERT INTO image (id, locator, hash, stamp, x_resolution, y_resolution, format, depth, source_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);"
 		if image['location']:
-			location = "({0},{1})".format(image['location'][0], image['location'][1])
-		cursor.execute(sql, (image_id, image['locator'], image['hash'], image['stamp'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], image['source_id'], location))
+			location = "'({0},{1})'".format(image['location'][0], image['location'][1])
+			sql = "INSERT INTO image (id, locator, hash, stamp, x_resolution, y_resolution, format, depth, source_id, location) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, {});".format(location) # format used because pg8000 can't deal with points
+		cursor.execute(sql, (image_id, uuid.UUID(image['locator']), image['hash'], image['stamp'], image['resolution'][0], image['resolution'][1], image['format'], image['depth'], image['source_id']))
 		image['id'] = image_id
 		if image['tags']:
 			self._create_tags(cursor, image['tags'], image_id)
@@ -209,14 +208,14 @@ class DatabaseMapper(object):
 			# tags is a string, change to list
 			tags = (tags,)
 		sql = "INSERT INTO tag (image_id, name) VALUES (%s, %s);"
-		cursor.executemany(sql, ((image_id, tag) for tag in tags))
+		cursor.executemany(sql, [(image_id, tag) for tag in tags])
 
 	def _delete_tags(self, cursor, tags, image_id):
 		if hasattr(tags, 'upper'):
 			#tags is a string, change to list
 			tags = (tags, )
 		sql = "DELETE FROM tag WHERE image_id = %s AND name = %s;"
-		cursor.executemany(sql, ((image_id, tag) for tag in tags))
+		cursor.executemany(sql, [(image_id, tag) for tag in tags])
 
 	@transactional
 	def get_annotation_by_id(self, annotation_id):
@@ -271,15 +270,15 @@ class DatabaseMapper(object):
 
 	def _create_annotation(self, cursor, annotation, image_id):
 		annotation_id = self._get_next_id(cursor, 'annotation')
-		sql = "INSERT INTO annotation (id, image_id, confidence, stamp, boundary, domain, model) VALUES (%s, %s, %s, %s, %s, %s, %s);"
-		cursor.execute(sql, (annotation_id, image_id, annotation['confidence'], annotation['stamp'], polygon_tuple_adapter(annotation['boundary']), annotation['domain'], annotation['model']))
+		sql = "INSERT INTO annotation (id, image_id, confidence, stamp, boundary, domain, model) VALUES (%s, %s, %s, %s, '{}', %s, %s);".format(polygon_tuple_adapter(annotation['boundary'])) # using format here because pg8000 won't insert the polygon correctly
+		cursor.execute(sql, (annotation_id, image_id, int(annotation['confidence']), annotation['stamp'], annotation['domain'], annotation['model']))
 		annotation['id'] = annotation_id
 		if 'annotation_tags' in annotation and annotation['annotation_tags']:
 			self._create_annotation_tags(cursor, annotation['annotation_tags'], annotation_id)
 
 	def _create_annotation_tags(self, cursor, annotation_tags, annotation_id):
 		sql = "INSERT INTO annotation_tag (annotation_id, name) VALUES (%s, %s);"
-		cursor.executemany(sql, ((annotation_id, tag) for tag in annotation_tags))
+		cursor.executemany(sql, [(annotation_id, tag) for tag in annotation_tags])
 
 	@transactional
 	def get_annotation_tags_by_annotation_id(self, annotation_id):
@@ -308,7 +307,7 @@ class DatabaseMapper(object):
 		sql = "UPDATE meta SET value=%s WHERE key=%s;"
 		cursor.execute(sql, (patch_level, 'patch_level'))
 		if cursor.rowcount == 0:
-			raise psycopg2.IntegrityError("Could not update patch level")
+			raise IntegrityError("Could not update patch level")
 
 	@transactional
 	def get_patch_level(self):
@@ -391,7 +390,7 @@ class DatabaseMapper(object):
 		sql = "UPDATE image_lock SET expiry = %s WHERE image_id = %s AND domain = %s AND key = %s AND expiry > %s;"
 		cursor.execute(sql, (expiry, image_id, domain, key, now))
 		if cursor.rowcount == 0:
-			raise psycopg2.IntegrityError("Lock was not found or had expired")
+			raise IntegrityError("Lock was not found or had expired")
 
 	def _acquire_lock_atomic(self, cursor, domain, key, duration, query, parameters):
 		"""
@@ -441,7 +440,7 @@ class DatabaseMapper(object):
 		sql = "DELETE FROM image_lock WHERE image_id = %s AND domain = %s AND key = %s AND expiry > %s;"
 		cursor.execute(sql, (image_id, domain, key, now))
 		if checked and not cursor.rowcount > 0:
-			raise psycopg2.IntegrityError("Lock was not found")
+			raise IntegrityError("Lock was not found")
 
 	@transactional
 	def expire_locks(self):

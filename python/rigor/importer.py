@@ -21,8 +21,6 @@ import shutil
 import errno
 import imghdr
 
-import psycopg2
-
 class Importer(object):
 	""" Class containing methods for importing images into the Rigor framework """
 
@@ -39,7 +37,7 @@ class Importer(object):
 		self._logger = rigor.logger.get_logger('.'.join((__name__, self.__class__.__name__)))
 		self._move = move
 		self._metadata = dict()
-		self._database = rigor.database.Database(database)
+		self._database = rigor.database.Database.instance(database)
 		self._database_mapper = DatabaseMapper(self._database)
 		try:
 			import pyexiv2 # pylint: disable=W0612
@@ -155,7 +153,7 @@ class Importer(object):
 				os.chmod(destination, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
 				self._logger.info("Imported image {0}".format(image['locator']))
 				return image
-		except psycopg2.IntegrityError:
+		except rigor.database.IntegrityError:
 			self._logger.warn("The image at '{0}' already exists in the database".format(path))
 
 	def _read_local_metadata(self, basename):

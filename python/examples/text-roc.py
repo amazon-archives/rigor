@@ -30,7 +30,7 @@ def main():
 	parser.add_argument('-r', '--random', action="store_true", default=False, required=False, help='Fetch images ordered randomly if limit is active')
 	args = parser.parse_args()
 	parameters["classifier_file"] = args.classifier_file
-	#database_mapper = DatabaseMapper(Database()) # unused!?
+	#database_mapper = DatabaseMapper(Database.instance()) # unused!?
 	results.write("threshold\texpected\tdetected\texpected_box\tdetected_box\n")
 	#for cascade_threshold in (.1,.2,.3,.4,.5,.6,.7,.8,.9):
 	for cascade_threshold in (.5,.6):
