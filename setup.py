@@ -16,7 +16,7 @@ setup(name='Rigor',
 	author_email='kevin@blindsight.com',
 	url='https://github.com/blindsightcorp/rigor',
 	package_dir = {'': 'python'},
-	packages=['rigor',],
+	packages=['rigor', 'rigor.adapters'],
 	scripts=scripts,
 	data_files=[
 		('sql', sql),
