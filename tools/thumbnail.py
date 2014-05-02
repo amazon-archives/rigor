@@ -40,7 +40,7 @@ class Thumbnailer(object):
 		with rigor.lockfile.LockFile(self._lock_file):
 			with self._database.get_cursor(False) as cursor:
 				cursor.execute("SELECT id, locator, format FROM image ORDER BY id;")
-				images = cursor.fetch_all(rigor.dbmapper.image_mapper)
+				images = cursor.fetch_all(rigor.dbmapper.kImageMapper)
 			for image in images:
 				source_path = rigor.imageops.find(image)
 				# Newly-imported images won't exist for some time.  No point failing

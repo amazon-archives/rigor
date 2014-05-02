@@ -5,13 +5,14 @@ class DictRow(object):
 
 	def __init__(self, row, column_names):
 		self._row = row
-		self._column_map = dict(zip(column_names, range(len(column_names))))
+		self._column_names = column_names
+		self._column_map = dict(zip(column_names, row))
 
 	def __getitem__(self, key):
 		try:
 			return self._row[key]
 		except TypeError:
-			return self._row[self._column_map[key]]
+			return self._column_map[key]
 
 	def __contains__(self, key):
 		return key in self._column_map
@@ -25,6 +26,9 @@ class DictRow(object):
 
 	def __getattr__(self, name):
 		return getattr(self._row, name)
+
+	def iteritems(self):
+		return ((column, self._column_map[column]) for column in self._column_names)
 
 class DictCursor(object):
 	""" A cursor-like object that can fetch columns by name as well as by numeric index """
