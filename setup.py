@@ -10,7 +10,7 @@ scripts.append('python/import.py')
 sql=glob.glob(os.path.join('sql', '*.sql'))
 
 setup(name='Rigor',
-	version='1.0.1',
+	version='1.1.1',
 	description='The Rigor testing framework',
 	author='Kevin Rauwolf',
 	author_email='kevin@blindsight.com',
@@ -20,5 +20,6 @@ setup(name='Rigor',
 	scripts=scripts,
 	data_files=[
 		('sql', sql),
+		('conf', ['rigor.ini.sample', ]),
 	]
 )
