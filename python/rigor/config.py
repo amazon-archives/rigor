@@ -2,12 +2,10 @@
 
 import os
 from ConfigParser import RawConfigParser
-import multiprocessing
 
 kConfigurationPath = os.path.join(os.environ['HOME'], '.rigor.ini')
 
 __defaults__ = dict(
-		max_workers = multiprocessing.cpu_count(),
 		copy_local = 'yes',
 		ssl = 'yes',
 		min_database_connections = 0,

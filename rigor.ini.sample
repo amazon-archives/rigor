@@ -5,10 +5,6 @@
 # Where the server image repository is mounted locally
 image_repository = /data/rigor/images
 
-# Number of images to process in parallel.  Default will use number of CPUs
-# found.  If set to 1, processing will be done in the main thread.
-#max_workers = 8
-
 # Whether to copy images locally before processing
 #copy_local = yes
 

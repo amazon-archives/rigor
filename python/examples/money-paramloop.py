@@ -12,7 +12,6 @@ import rigor.logger
 
 from datetime import datetime
 from functools import partial
-from multiprocessing.pool import Pool
 import json
 
 kDatabase = 'rigor'
@@ -69,7 +68,6 @@ def main():
 	rigor.domain.money.init(parameters)
 	logger = rigor.logger.getLogger(__file__)
 	database_mapper = DatabaseMapper(Database.instance(kDatabase))
-	pool = Pool(int(config.get('global', 'max_workers')))
 	logger.debug('Fetching image IDs from database')
 	images = database_mapper.get_images_for_analysis(kDomain, kLimit, False)
 	for parameter_set in get_parameters():
@@ -81,7 +79,7 @@ def main():
 		with open("{0}.results".format(timestamp), "w") as result_file:
 			image_config = partial(rigor.domain.money.run, parameters=parameter_set)
 			logger.debug('Processing {0} images'.format(len(images)))
-			for result in pool.map(image_config, images):
+			for result in map(image_config, images):
 				result_file.write("\t".join([str(x) for x in result]))
 				result_file.write("\n")
 

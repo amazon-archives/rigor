@@ -12,10 +12,6 @@ import abc
 import json
 import argparse
 
-kMaxWorkers = int(config.get('global', 'max_workers'))
-if kMaxWorkers > 1:
-	from multiprocessing.pool import Pool
-
 class BaseRunner(object):
 	"""
 	The base class for Runner objects, which fetch a set of images and apply
@@ -144,8 +140,6 @@ class Runner(DatabaseRunner):
 		DatabaseRunner.__init__(self, algorithm, arguments)
 		self._domain = domain
 		self._image_id = None
-		if kMaxWorkers > 1:
-			self._pool = Pool(int(config.get('global', 'max_workers')))
 
 	def run(self):
 		""" Runs the algorithm on the images matching the supplied arguments """
@@ -156,7 +150,4 @@ class Runner(DatabaseRunner):
 		else:
 			images = self._database_mapper.get_images_for_analysis(self._domain, self._arguments.limit, self._arguments.random, self._arguments.tags_require, self._arguments.tags_exclude)
 		self._logger.debug('Processing {0} images'.format(len(images)))
-		if kMaxWorkers > 1:
-			return self.evaluate(self._pool.map(self._algorithm.apply, images))
-		else:
-			return self.evaluate(map(self._algorithm.apply, images))
+		return self.evaluate(map(self._algorithm.apply, images))
