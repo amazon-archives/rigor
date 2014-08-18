@@ -59,18 +59,10 @@ def read(path):
 	return cv2.imread(path, -1) # Load image as-is, no color conversion
 
 def destroy_image(database, image):
-	""" Completely Removes an image from the database, along with its tags, annotations, and any anotation tags. Also deletes the image file from disk."""
+	""" Removes an image and any thumbnails from disk and from the database """
 	mapper = DatabaseMapper(database)
 	with database.get_cursor() as cursor:
-		sql = "DELETE FROM tag WHERE image_id = %s;"
-		cursor.execute(sql, (image['id'],))
-		annotations = mapper._get_annotations_by_image_id(cursor, image['id']) # pylint: disable=W0212
-		for annotation in annotations:
-			sql = "DELETE FROM annotation_tag WHERE annotation_id = %s"
-			cursor.execute(sql, (annotation['id'],))
-			mapper._delete_annotation(cursor, annotation['id']) # pylint: disable=W0212
-		sql = "DELETE FROM image WHERE id = %s;"
-		cursor.execute(sql, (image['id'],))
+		mapper._delete_image(cursor, image) # pylint: disable=W0212
 		image_path = find(image)
 		os.unlink(image_path)
 		for thumbnail_dir in os.listdir(config.get('thumbnail', 'image_repository')):

@@ -218,6 +218,25 @@ class DatabaseMapper(object):
 		cursor.executemany(sql, [(image_id, tag) for tag in tags])
 
 	@transactional
+	def delete_image(self, image):
+		"""
+		Removes an image from the database, along with its tags, annotations, and
+		any annotation tags
+		"""
+		pass
+
+	def _delete_image(self, cursor, image):
+		sql = "DELETE FROM tag WHERE image_id = %s;"
+		cursor.execute(sql, (image['id'], ))
+		annotations = self._get_annotations_by_image_id(cursor, image['id'])
+		sql = "DELETE FROM annotation_tag WHERE annotation_id = %s;"
+		cursor.executemany(sql, [annotation['id'] for annotation in annotations])
+		sql = "DELETE FROM annotation WHERE id = %s;"
+		cursor.executemany(sql, [annotation['id'] for annotation in annotations])
+		sql = "DELETE FROM image WHERE id = %s;"
+		cursor.execute(sql, (image['id'], ))
+
+	@transactional
 	def get_annotation_by_id(self, annotation_id):
 		""" Retrieves the annotation from the database """
 		pass
@@ -251,6 +270,8 @@ class DatabaseMapper(object):
 		pass
 
 	def _delete_annotations(self, cursor, image_id, domain):
+		sql = "DELETE FROM annotation_tag WHERE annotation_id IN (SELECT id FROM annotation WHERE domain = %s AND image_id = %s);"
+		cursor.execute(sql, (domain, image_id))
 		sql = "DELETE FROM annotation WHERE domain = %s AND image_id = %s;"
 		cursor.execute(sql, (domain, image_id))
 
@@ -260,6 +281,8 @@ class DatabaseMapper(object):
 		pass
 
 	def _delete_annotation(self, cursor, annotation_id):
+		sql = "DELETE FROM annotation_tag WHERE annotation_id = %s;"
+		cursor.execute(sql, (annotation_id, ))
 		sql = "DELETE FROM annotation WHERE id = %s;"
 		cursor.execute(sql, (annotation_id,))
 
