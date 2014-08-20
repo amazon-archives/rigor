@@ -1,12 +1,11 @@
-# Commented-out values are defaults.  Everything else
-# must be set for the application to run
+# Entries that have all of their values commented out are defaults.
+# Everything else must be set for the application to run.
 #
 [global]
-# Where the server image repository is mounted locally
-image_repository = /data/rigor/images
-
-# Whether to copy images locally before processing
-#copy_local = yes
+# This can either be a base URL for images, or it can be a path to images
+# residing locally on the server.
+#image_repository = /data/rigor/images
+image_repository = http://image-server/rigor/images/
 
 [database]
 # Username for connecting to the database
@@ -16,7 +15,7 @@ username = USER
 password = PASS
 
 # Host name for connecting to the database
-host = ea
+host = HOST
 
 # Whether to use SSL for the database connection
 #ssl = yes
@@ -35,7 +34,7 @@ host = ea
 upload_repository = /data/rigor/import
 
 # Path to rsync binary, used for server-side import
-rsync_path = /usr/local/bin/rsync
+rsync_path = /usr/bin/rsync
 
 # Filename containing global metadata for a directory
 #metadata_file = metadata.json
@@ -51,7 +50,7 @@ image_repository = /data/rigor/thumbnails
 image_size = 64
 
 # Path to ImageMagick's 'convert' binary, used for generating thumbnails
-convert_path = /usr/local/bin/convert
+convert_path = /usr/bin/convert
 
 # Lockfile to prevent multiple thumbnailers from running
 lock_file = /tmp/rigor-thumbnail-lock

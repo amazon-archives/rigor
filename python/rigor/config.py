@@ -6,7 +6,6 @@ from ConfigParser import RawConfigParser
 kConfigurationPath = os.path.join(os.environ['HOME'], '.rigor.ini')
 
 __defaults__ = dict(
-		copy_local = 'yes',
 		ssl = 'yes',
 		min_database_connections = 0,
 		max_database_connections = 10,
