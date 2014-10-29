@@ -17,6 +17,9 @@ password = PASS
 # Host name for connecting to the database
 host = HOST
 
+# Port for connecting to the database
+#port = 5432
+
 # Whether to use SSL for the database connection
 #ssl = yes
 

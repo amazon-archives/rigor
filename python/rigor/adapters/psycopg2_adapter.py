@@ -47,7 +47,7 @@ class Database(rigor.database.Database):
 	@staticmethod
 	def build_dsn(database):
 		""" Builds the database connection string from config values """
-		dsn = "dbname='{0}' host='{1}'".format(database, config.get('database', 'host'))
+		dsn = "dbname='{0}' host='{1}' port={2}".format(database, config.get('database', 'host'), config.getint('database', 'port'))
 		try:
 			ssl = config.getboolean('database', 'ssl')
 			if ssl:
