@@ -1,59 +1,40 @@
-# Entries that have all of their values commented out are defaults.
-# Everything else must be set for the application to run.
+# Sample Rigor configuration file. Copy this into an appropriate location (by
+# default, Rigor will look in your home directory for a file called .rigor.ini)
+# and edit the values as appropriate
 #
-[global]
-# This can either be a base URL for images, or it can be a path to images
-# residing locally on the server.
-#image_repository = /data/rigor/images
-image_repository = http://image-server/rigor/images/
-
 [database]
+# Database connection parameters go here. If you are using sqlite, the only
+# necessary parameter is driver. The database name, specified elsewhere, should
+# be the path to the database file.
+
 # Username for connecting to the database
-username = USER
+#username = USER
 
 # Password for connecting to the database
-password = PASS
+#password = PASS
 
 # Host name for connecting to the database
-host = HOST
+#host = HOST
 
 # Port for connecting to the database
 #port = 5432
 
-# Whether to use SSL for the database connection
-#ssl = yes
-
-# Minimum number of pooled connections to database
-#min_database_connections = 0
-
-# Maximum number of pooled connections to database
-#max_database_connections = 10
-
-# Adapter to use for database connections
-#adapter = psycopg2
+# Driver to use for database connections, in SQLAlchemy's driver format
+#driver = postgresql+psycopg2
+driver = sqlite3
 
 [import]
-# Where images should be copied or moved to once imported
-upload_repository = /data/rigor/import
+# Whether to hash files on import. This can be useful to find duplicates and
+# ensure file data remains the same, but it requires reading the full contents
+# of each file on import, which may be time-consuming if data is stored in S3,
+# for example.
+hash_imports = yes
 
-# Path to rsync binary, used for server-side import
-rsync_path = /usr/bin/rsync
-
-# Filename containing global metadata for a directory
-#metadata_file = metadata.json
-
-# Date format for timestamps in metadata files
-#timestamp_format = %Y-%m-%dT%H:%M:%SZ
-
-[thumbnail]
-# Path to thumbnails
-image_repository = /data/rigor/thumbnails
-
-# Size of the largest dimension for thumbnail images
-image_size = 64
-
-# Path to ImageMagick's 'convert' binary, used for generating thumbnails
-convert_path = /usr/bin/convert
-
-# Lockfile to prevent multiple thumbnailers from running
-lock_file = /tmp/rigor-thumbnail-lock
+# If using S3, each percept will need its "credentials" field set to a section
+# name in this configuration file.
+#
+# Here is an entry for a percept with "example_credentials" in its
+# "credentials" field:
+#[example_credentials]
+# aws_access_key_id = AKIAIOSFODNN7EXAMPLE
+# aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
