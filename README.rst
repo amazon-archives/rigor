@@ -73,10 +73,10 @@ A minimal :file:`metadata.json` file might just have tags and a source filename 
       ],
       "x_size" : 256,
       "y_size" : 256,
-      "byte_count": 32411
+      "byte_count" : 32411
     }
 
-.. warning:: When importing image percepts the "x_size" and "y_size" fields should be set to the image's width and height respectively, as they are likely to be needed by most algorithms, as well as RigorHub.
+.. warning:: When importing image perpects the "x_size" and "y_size" fields should be set to the image's width and height respectively, as they are likely to be needed by most algorithms, as well as RigorHub. 
 
 Here is an example file for a image with many of the metadata fields used. Most are optional, but it is highly recommended to fill in as much information as is known, as that improves the quality of the database. See :py:meth:`~rigor.dbmapper.DatabaseMapper.add_percept` for a full list of percept fields.
 
@@ -89,7 +89,7 @@ Here is an example file for a image with many of the metadata fields used. Most 
       "locator" : "s3://my.bucket.name/ff/d9/ffd9ee17dd0c4d2692b4fa0cae92da29.png",  <2>
       "timestamp" : "2011-02-04T21:24:56Z",                      <3>
       "format" : "image/jpeg",                                   <4>
-      "byte_count" : 38611,                                      <5>
+      "byte_count" : 38611   ,                                   <5>
       "location" : [ -122.269241, 37.871104 ],                   <6>
       "tags" : [                                                 <7>
         "training",
@@ -126,7 +126,7 @@ Here is an example file for a image with many of the metadata fields used. Most 
   2. An absolute URL for the final storage location of the file data. If data is not being copied, it will most likely match the source URL.
   3. The time and date (UTC) that the percept was recorded. The source file's timestamp will be used if this is not supplied here.
   4. The MIME type of the percept data. The file's extension will be used to guess a type if none is supplied here. Defaults to :py:data:`rigor.serialize.kDefaultMIMEType` if the guess fails.
-  4. File size in bytes
+  5. File size in bytes
   6. WGS84 lon/lat where the percept was recorded. Optional.
   7. Tags are freeform. The more the merrier.
   8. Properties are key-value pairs. Keys and values are always strings.

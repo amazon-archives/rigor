@@ -32,7 +32,7 @@ class Importer(object):
 	:param config: Configuration data
 	:type config: :py:class:`~rigor.config.RigorConfiguration` instance
 	:param str database: Name of the database to export
-	:param metadata: Name of the file containing metadata to read, or parsed metadata
+	:param metadata: Name of the file containing metadata to read, or parsed metadata as a list of dicts
 	:param bool import_data: Whether to import percept data into the repository. This is highly recommended, and will be done by default.
 	"""
 	def __init__(self, config, database, metadata, import_data=True):

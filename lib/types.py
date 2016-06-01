@@ -171,12 +171,20 @@ class Polygon(sa.types.UserDefinedType):
 	def python_type(self):
 		return tuple
 
+class Collection(RigorBase):
+	""" A set of items (currently, just percepts) that are related somehow """
+	__tablename__ = 'collection'
+	id = sa.Column(sa.Integer, sa.Sequence('collection_id_seq'), primary_key=True)
+	name = sa.Column(sa.Text)
+	source = sa.Column(sa.Text)
+
 class PerceptCollection(RigorBase):
 	""" Relates percepts to collections """
 	__tablename__ = 'percept_collection'
 	percept_id = sa.Column(sa.Integer, sa.ForeignKey('percept.id'), primary_key=True)
 	collection_id = sa.Column(sa.Integer, sa.ForeignKey('collection.id'), primary_key=True)
 	collection_n = sa.Column(sa.Integer)
+	collection = sa.orm.relationship(lambda: Collection, backref='percept_collection', cascade='all')
 
 class Percept(RigorBase):
 	"""
@@ -199,7 +207,7 @@ class Percept(RigorBase):
 	tags = sa.orm.relationship(lambda: PerceptTag, order_by=lambda: PerceptTag.name, cascade='all, delete-orphan')
 	properties = sa.orm.relationship(lambda: PerceptProperty, order_by=lambda: PerceptProperty.name, collection_class=sa.orm.collections.attribute_mapped_collection('name'), cascade='all, delete-orphan')
 	annotations = sa.orm.relationship(lambda: Annotation, order_by=lambda: Annotation.id, cascade='all, delete-orphan')
-	collections = sa.orm.relationship(lambda: Collection, secondary=PerceptCollection.__table__, backref='percepts')
+	collections = sa.orm.relationship(lambda: PerceptCollection, backref='percepts', cascade='all')
 
 class PerceptSensors(RigorBase):
 	""" Sensor metadata for a :py:class:`Percept` """
@@ -290,13 +298,6 @@ class AnnotationProperty(RigorProperty, RigorBase):
 	def __init__(self, name=None, value=None):
 		self.name = name
 		self.value = value
-
-class Collection(RigorBase):
-	""" A set of items (currently, just percepts) that are related somehow """
-	__tablename__ = 'collection'
-	id = sa.Column(sa.Integer, sa.Sequence('collection_id_seq'), primary_key=True)
-	name = sa.Column(sa.Text)
-	source = sa.Column(sa.Text)
 
 class Meta(RigorBase):
 	""" Metadata describing an individual Rigor database """

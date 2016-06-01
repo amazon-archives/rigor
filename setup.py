@@ -26,11 +26,11 @@ scripts.extend(glob(os.path.join('bin', '*.py')))
 
 setup(
 		name = 'Rigor',
-		version = '2.0.0',
+		version = '2.1.0',
 		description = 'The Rigor testing framework',
 		long_description = 'Rigor is a framework for managing labeled data, and for testing algorithms against that data in a systematic fashion.',
-		maintainer = 'Kevin Rauwolf',
-		maintainer_email = 'kevin@blindsight.com',
+		maintainer = 'David Wallace',
+		maintainer_email = 'dtw@a9.com',
 		url = 'https://github.com/blindsightcorp/rigor',
 		license = 'BSD License',
 		install_requires = ['SQLAlchemy >= 0.7.6', 'alembic >= 0.7.3'],

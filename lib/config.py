@@ -117,7 +117,7 @@ class RigorIniConfiguration(RigorConfiguration):
 			raise NoValueError(err)
 
 	def getboolean(self, section, key):
-		""" See :py:meth:`RigorConfiguration.getBoolean` """
+		""" See :py:meth: `RigorConfiguration.getBoolean` """
 		return super(RigorIniConfiguration, self).getboolean(section, key)
 
 	def __contains__(self, key):

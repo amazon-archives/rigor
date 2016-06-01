@@ -21,7 +21,7 @@
 
 # Driver to use for database connections, in SQLAlchemy's driver format
 #driver = postgresql+psycopg2
-driver = sqlite3
+driver = sqlite
 
 [import]
 # Whether to hash files on import. This can be useful to find duplicates and
