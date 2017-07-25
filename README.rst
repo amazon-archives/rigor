@@ -1,3 +1,6 @@
+**Archived**
+============
+
 **This repository is no longer being updated.**  New development is happening in `rigorgt/rigor <https://github.com/rigorgt/rigor>`_.
 
 Rigor
